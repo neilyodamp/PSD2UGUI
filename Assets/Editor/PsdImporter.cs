@@ -23,7 +23,7 @@ namespace PsdLayoutTool
         public const string NO_NAME_HEAD = "no_name_";
         public const string CURR_IMG_PATH_ROOT = "export_image/";
 
-        private const string TEST_FONT_NAME = "FandolHei";
+        private const string TEST_FONT_NAME = "";
         private const string PUBLIC_IMG_PATH = @"\public_images";
         private const string SCROLL = "@ScrollView";
         private const string SCROLL_SIZE = "@Size";
@@ -48,6 +48,13 @@ namespace PsdLayoutTool
         private static Dictionary<GameObject, Vector3> _positionDic;
         private static Dictionary<string, Sprite> _imageDic;
 
+        private static UINode _rootNode;
+        private static UINode _currNode;
+
+        public static Vector3 GetCanvasPosition()
+        {
+            return _canvasObj.transform.position;
+        }
 
         public static float MaximumDepth { get; set; }
         public static float PixelsToUnits { get; set; }
@@ -58,7 +65,7 @@ namespace PsdLayoutTool
             set { _useUnityUI = value; }
         }
 
-        public static Vector2 ScreenResolution = new Vector2(1920, 1080);
+        public static Vector2 ScreenResolution = new Vector2(1334, 750);
         public static Vector2 LargeImageAlarm = new Vector2(512, 512);
 
         public static string textFont
@@ -122,7 +129,7 @@ namespace PsdLayoutTool
 
             _currentDepth = MaximumDepth;
 
-            string fullPath = Path.Combine(GetFullProjectPath(), asset.Replace('\\', '/'));
+            string fullPath = Path.Combine(PsdUtils.GetFullProjectPath(), asset.Replace('\\', '/'));
 
             PsdFile psd = new PsdFile(fullPath);
 
@@ -136,7 +143,7 @@ namespace PsdLayoutTool
 
             _psdName = asset.Replace(assetPathWithoutFilename, string.Empty).Replace(".psd", string.Empty);
 
-            _currentPath = GetFullProjectPath() + "Assets/" + CURR_IMG_PATH_ROOT;
+            _currentPath = PsdUtils.GetFullProjectPath() + "Assets/" + CURR_IMG_PATH_ROOT;
             _currentPath = Path.Combine(_currentPath, _psdName);
 
             CreateDic(_currentPath);
@@ -152,7 +159,9 @@ namespace PsdLayoutTool
                 //create ui Root
                 _rootPsdGameObject = CreateObj(_psdName);
                 _rootPsdGameObject.transform.SetParent(_canvasObj.transform, false);
-
+                _rootNode = new UINode();
+                _rootNode.go = _rootPsdGameObject;
+                
                 RectTransform rectRoot = _rootPsdGameObject.GetComponent<RectTransform>();
                 rectRoot.anchorMin = new Vector2(0, 0);
                 rectRoot.anchorMax = new Vector2(1, 1);
@@ -164,12 +173,14 @@ namespace PsdLayoutTool
                 //updateRectPosition(rootPsdGameObject, rootPos, true);
 
                 _currentGroupGameObject = _rootPsdGameObject;
+                _currNode = _rootNode;
             }
 
             List<Layer> tree = BuildLayerTree(psd.Layers);
 
             ExportTree(tree);
-
+            PsdUtils.CreateUIHierarchy(_rootNode);
+            PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
             if (_createPrefab)
             {
                 UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab(asset.Replace(".psd", ".prefab"));
@@ -219,7 +230,7 @@ namespace PsdLayoutTool
                         string spriteName = image.sprite.name;
 
                         string str1 = spriteName;
-                        
+
                         Match match = reg.Match(str1);
                         Vector2 layoutSize = Vector2.zero;
                         if (match.ToString() != "")
@@ -473,92 +484,74 @@ namespace PsdLayoutTool
                 (layer.Name == " copy" && layer.Rect.height == 0);
         }
 
-        private static string GetFullProjectPath()
-        {
-            string projectDirectory = Application.dataPath;
-
-            if (projectDirectory.EndsWith("Assets"))
-            {
-                projectDirectory = projectDirectory.Remove(projectDirectory.Length - "Assets".Length);
-            }
-
-            return projectDirectory;
-        }
-
         private static string GetRelativePath(string fullPath)
         {
-            return fullPath.Replace(GetFullProjectPath(), string.Empty);
+            return fullPath.Replace(PsdUtils.GetFullProjectPath(), string.Empty);
         }
 
         private static void ExportTree(List<Layer> tree)
         {
             for (int i = tree.Count - 1; i >= 0; i--)
             {
-                ExportLayer(tree[i]);
+                ExportTreeNode(tree[i]);
             }
         }
-
-        private static void ExportLayer(Layer layer)
+        private static void ExportTreeNode(Layer layer)
         {
             UpdateLayerName(layer, MakeNameSafe(layer.Name));
-            if (layer.Children.Count > 0 || layer.Rect.width == 0)
+            if (PsdUtils.IsGroupLayer(layer))
             {
-                ExportFolderLayer(layer);
+                ExportGroup(layer);
             }
             else
             {
-                ExportArtLayer(layer);
+                ExportLayer(layer);
             }
         }
-
-        private static void ExportFolderLayer(Layer layer)
+        //图像和text
+        private static void ExportLayer(Layer layer) // 
         {
-            if (layer.Name.ContainsIgnoreCase(BTN_HEAD))
+            if(!layer.IsTextLayer)
             {
-                UpdateLayerName(layer, layer.Name.ReplaceIgnoreCase(BTN_HEAD, string.Empty));
-
-                if (UseUnityUI)
-                {
-                    CreateUIButton(layer);
-                }
-                else
-                {
-                    ////CreateGUIButton(layer);
-                }
-            }
-            else if(layer.Name.ContainsIgnoreCase(SCROLL)) // 检测到scroll
-            {
-                string oldPath = _currentPath;
-                GameObject oldGroupObject = _currentGroupGameObject;
-                CreateDic(_currentPath);
-                if(_layoutInScene || _createPrefab)
-                {
-                    _currentGroupGameObject = CreateObj(layer.Name);
-                }
 
             }
             else
             {
-                string oldPath = _currentPath;
-                GameObject oldGroupObject = _currentGroupGameObject;
-
-                CreateDic(_currentPath);
-
-                //Debug.Log(_currentPath);
-                if (_layoutInScene || _createPrefab)
-                {
-                    _currentGroupGameObject = CreateObj(layer.Name);
-                    _currentGroupGameObject.transform.SetParent(oldGroupObject.transform, false);
-
-                }
-
-                ExportTree(layer.Children);
-
-                _currentPath = oldPath;
-                _currentGroupGameObject = oldGroupObject;
-
+                UINode node = PsdControl.CreateUIText(layer);
+                _currNode.children.Add(node);
             }
         }
+        private static void ExportGroup(Layer layer)
+        {
+            GroupClass groupClass = PsdControl.CheckGroupClass(layer);
+            UINode oldNode = _currNode;
+            UINode node = null;
+            if (groupClass == GroupClass.Image)
+            {
+                node = PsdControl.CreateImage(layer);
+            }
+            else if(groupClass == GroupClass.RectTransform)
+            {
+                node = PsdControl.CreateRectTransform(layer);
+            }
+            else if(groupClass == GroupClass.Empty)
+            {
+                return;
+            }
+            else
+            {
+                return; 
+            }
+            //添加了node
+            _currNode.children.Add(node);
+            _currNode = node;
+            ExportTree(layer.Children);
+            _currNode = oldNode;
+        }
+
+
+
+
 
         private static void CreateDic(string path)
         {
@@ -591,7 +584,7 @@ namespace PsdLayoutTool
             {
                 if (_layoutInScene || _createPrefab)
                 {
-                    CreateUIText(layer);
+                    //CreateUIText(layer);
                 }
             }
         }
@@ -643,12 +636,12 @@ namespace PsdLayoutTool
             return str;
         }
 
-        private static Sprite CreateSprite(Layer layer)
+        public static Sprite CreateSprite(Layer layer)
         {
             return CreateSprite(layer, _psdName);
         }
 
-        private static Sprite CreateSprite(Layer layer, string packingTag)
+        public static Sprite CreateSprite(Layer layer, string packingTag)
         {
             Sprite sprite = null;
 
@@ -706,8 +699,8 @@ namespace PsdLayoutTool
 
             GameObject obj = new GameObject(objName);
             RectTransform rectTs = obj.AddComponent<RectTransform>();
-            rectTs.sizeDelta = new Vector2(100/PixelsToUnits, 100/PixelsToUnits);
-            
+            rectTs.sizeDelta = new Vector2(100 / PixelsToUnits, 100 / PixelsToUnits);
+
             return obj;
         }
 
@@ -767,14 +760,14 @@ namespace PsdLayoutTool
 
         private static Image CreateUIImage(Layer layer)
         {
-            
 
-            float x = layer.Rect.x ;
-            float y = layer.Rect.y ;
-            
-            y = (_canvasSize.y ) - y;
 
-            x = x - ((_canvasSize.x / 2) );
+            float x = layer.Rect.x;
+            float y = layer.Rect.y;
+
+            y = (_canvasSize.y) - y;
+
+            x = x - ((_canvasSize.x / 2));
             y = y - ((_canvasSize.y / 2));
 
             float width = layer.Rect.width / PixelsToUnits;
@@ -813,87 +806,20 @@ namespace PsdLayoutTool
             transform.sizeDelta = new Vector2(width, height);
         }
 
-        private static void CreateUIText(Layer layer)
-        {
-            Color color = layer.FillColor;
+        
 
-            float x = layer.Rect.x ;
-            float y = layer.Rect.y ;
-
-            y = (_canvasSize.y ) - y;
-
-            x = x - ((_canvasSize.x / 2) );
-            y = y - ((_canvasSize.y / 2) );
-
-            float width = layer.Rect.width / PixelsToUnits;
-            float height = layer.Rect.height / PixelsToUnits;
-
-            GameObject gameObject = CreateObj(layer.Name);
-
-
-            gameObject.transform.position = new Vector3(x + (layer.Rect.width / 2), y - (layer.Rect.height / 2), _currentDepth);
-            gameObject.transform.SetParent(_currentGroupGameObject.transform, false);
-
-            _currentDepth -= _depthStep;
-
-            Font font = GetFontInfo();
-
-            Text textUI = gameObject.GetComponent<Text>();
-            if (textUI == null)
-            {
-                textUI = gameObject.AddComponent<Text>();
-            }
-
-            textUI.text = layer.Text;
-            textUI.font = font;
-            textUI.horizontalOverflow = HorizontalWrapMode.Overflow;//yanruTODO修改
-            textUI.verticalOverflow = VerticalWrapMode.Overflow;
-            textUI.rectTransform.sizeDelta = new Vector2(width, height);
-            textUI.raycastTarget = false;//can not  click text by yanru 2016-06-16 19:27:41
-
-            //描边信息
-            if (layer.TextOutlineColor.a != 0f)
-            {
-                Outline outline = textUI.GetComponent<Outline>();
-                if (outline == null)
-                    outline = textUI.gameObject.AddComponent<Outline>();
-
-                outline.effectColor = layer.TextOutlineColor;
-                outline.effectDistance = new Vector2(layer.OutLineDis, layer.OutLineDis);
-            }
-
-            float fontSize = layer.FontSize ;
-            float ceiling = Mathf.Ceil(fontSize);
-
-            //Debug.Log(" font size=" + fontSize+ ",ceiling=" + ceiling);
-            textUI.fontSize = (int)fontSize;
-            textUI.color = color;
-            textUI.alignment = TextAnchor.MiddleCenter;
-
-            switch (layer.Justification)
-            {
-                case TextJustification.Left:
-                    textUI.alignment = TextAnchor.MiddleLeft;
-                    break;
-                case TextJustification.Right:
-                    textUI.alignment = TextAnchor.MiddleRight;
-                    break;
-                case TextJustification.Center:
-                    textUI.alignment = TextAnchor.MiddleCenter;
-                    break;
-            }
-        }
-
-        private static Font GetFontInfo()
+        public static Font GetFontInfo()
         {
             Font font = null;
 
             if (textFont.Contains(TEST_FONT_NAME))
             {
-                font = Resources.Load<Font>(textFont);
+                //font = Resources.Load<Font>(textFont);
+                font = Resources.GetBuiltinResource<Font>(textFont);
             }
             else
             {
+                
                 font = Resources.GetBuiltinResource<Font>(textFont);
             }
             return font;
@@ -909,4 +835,17 @@ namespace PsdLayoutTool
             child.Name = newName;
         }
     }
+
+    public class UINode
+    {
+        public GameObject go;
+        public Rect rect;
+        public List<UINode> children;
+
+        public UINode()
+        {
+            children = new List<UINode>();
+        }
+    }
+
 }

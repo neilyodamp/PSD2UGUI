@@ -1,0 +1,129 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using UnityEngine;
+using PhotoshopFile;
+namespace PsdLayoutTool
+{
+    public class PsdUtils
+    {
+        public static string GetFullProjectPath()
+        {
+            string projectDirectory = Application.dataPath;
+
+            if (projectDirectory.EndsWith("Assets"))
+            {
+                projectDirectory = projectDirectory.Remove(projectDirectory.Length - "Assets".Length);
+            }
+
+            return projectDirectory;
+        }
+
+        public static bool IsGroupLayer(Layer layer)
+        {
+            if (layer.Children.Count > 0 || layer.Rect.width == 0)
+            {
+                return true;
+            }
+            return false;
+        }
+
+
+
+
+        #region Test Tools
+        public static void DisplayUINodeTree(UINode root)
+        {
+            foreach(UINode node in root.children)
+            {
+                DisplayUINodeTree(node);
+            }
+        }
+
+
+        #endregion
+
+        public static void CreateUIHierarchy(UINode root)
+        {
+
+            for(int childIndex = 0;childIndex < root.children.Count;childIndex++)
+            {
+                root.children[childIndex].go.transform.SetParent(root.go.transform);
+                CreateUIHierarchy(root.children[childIndex]);
+            }
+        }
+        //设定一下位置和尺寸
+        public static Rect GetUINodeRectTransform(UINode node)
+        {
+            if(node.rect.width != 0 || node.children.Count == 0)
+            {
+                return node.rect;
+            }
+
+            float minX = PsdImporter.ScreenResolution.x;
+            float minY = PsdImporter.ScreenResolution.y;
+            float maxX = 0;
+            float maxY = 0;
+
+            
+            foreach(var childNode in node.children)
+            {
+                Rect childRect = GetUINodeRectTransform(childNode);
+
+                minX = Mathf.Min(minX, childRect.x);
+                maxX = Mathf.Max(maxX, childRect.x+childRect.width);
+                minY = Mathf.Min(minY, childRect.y);
+                maxY = Mathf.Max(maxY, childRect.y+childRect.height);
+            }
+
+            node.rect.x = minX;
+            node.rect.y = minY;
+            node.rect.width = maxX - minX;
+            node.rect.height = maxY - minY;
+
+            return node.rect;
+        }
+
+        public static void UpdateAllUINodeRectTransform(UINode root)
+        {
+
+            Rect rect = GetUINodeRectTransform(root);
+            float x = rect.x;
+            float y = rect.y;
+                        
+            y = (PsdImporter.ScreenResolution.y) - y;
+
+            x = x - ((PsdImporter.ScreenResolution.x / 2));
+            y = y - ((PsdImporter.ScreenResolution.y / 2));
+
+            //宽 和 高
+            float width = rect.width / PsdImporter.PixelsToUnits;
+            float height = rect.height / PsdImporter.PixelsToUnits;
+
+            Vector3 canvasPosition = PsdImporter.GetCanvasPosition();
+
+            RectTransform rectTransform = root.go.transform as RectTransform;
+
+            if (rectTransform.anchorMax.x == rectTransform.anchorMin.x && 
+                rectTransform.anchorMax.y == rectTransform.anchorMin.y)
+            {
+                root.go.transform.position = new Vector3(x + (rect.width / 2), y - (rect.height / 2), 0);
+               /* root.go.transform.position = new Vector3(root.go.transform.position.x + canvasPosition.x,
+                    root.go.transform.position.y + canvasPosition.y,
+                   root.go.transform.position.y + canvasPosition.z);
+                   */
+
+                rectTransform.sizeDelta = new Vector2(width, height);
+            }
+                
+
+            
+
+            foreach(var node in root.children)
+            {
+                UpdateAllUINodeRectTransform(node);
+            }
+        }
+    }
+}

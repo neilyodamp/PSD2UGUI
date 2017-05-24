@@ -155,7 +155,6 @@ namespace PhotoshopFile
 
             // 文档 五 - 4 - 21)
             Name = reader.ReadPascalString();
-
             // read the adjustment info
             int count = (int)((reader.BaseStream.Position - position2) % 4L);
             reader.ReadBytes(count);
