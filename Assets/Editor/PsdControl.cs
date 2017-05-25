@@ -23,6 +23,15 @@ namespace PsdLayoutTool
         Text = 8,
     }
 
+    public enum Direction
+    {
+        LeftToRight = 1,
+        RightToLeft = 2,
+        ButtomToTop =3,
+        TopToButtom = 4
+    }
+
+
     public class PsdControl
     {
         public const string BTN = "btn_";
@@ -31,6 +40,11 @@ namespace PsdLayoutTool
         public const string SCROLL = "src_";
         public const string PROGRESS = "pgr_";
         public const string SLIDER = "sld_";
+
+        public const string LEFT2RIGHT = "@L2R";
+        public const string RIGHT2LEFT = "@R2L";
+        public const string BUTTOM2TOP = "@B2T";
+        public const string TOP2BUTTOM = "@T2B";
 
         public static GroupClass CheckGroupClass(Layer layer)
         {
@@ -80,9 +94,123 @@ namespace PsdLayoutTool
 
             return GroupClass.Empty;
         }
+        public static UINode CreateProgress(Layer layer)
+        {
+            Debug.Log("create Progres");
+            Direction direction = Direction.LeftToRight;
+            if(layer.Name.Contains(RIGHT2LEFT))
+            {
+                direction = Direction.RightToLeft;
+            }else if(layer.Name.Contains(TOP2BUTTOM))
+            {
+                direction = Direction.TopToButtom;
+            }
+            else if(layer.Name.Contains(BUTTOM2TOP))
+            {
+                direction = Direction.ButtomToTop;
+            }
 
+            Layer fgLayer = null;
+            Layer bgLayer = null;
+
+            foreach(var child in layer.Children)
+            {
+                if(!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
+                {
+                    if(child.Name.Contains("@fg"))
+                    {
+                        fgLayer = child;       
+                    }
+                    if (child.Name.Contains("@bg"))
+                    {
+                        bgLayer = child;
+                    }
+
+                }
+            }
+            if(fgLayer == null)
+            {
+                Debug.LogError("progress can't find @fg");
+                return null;
+            }
+
+            //GameObject go
+            GameObject progressGo = new GameObject(layer.Name);
+
+            float width = fgLayer.Rect.width / PsdImporter.PixelsToUnits;
+            float height = fgLayer.Rect.height / PsdImporter.PixelsToUnits;
+            RectTransform rectTransform = progressGo.AddComponent<RectTransform>();
+
+            rectTransform.sizeDelta = new Vector2(width,height);
+
+            GameObject fgGo = new GameObject("Foreground");
+            RectTransform fgRectTransform = fgGo.AddComponent<RectTransform>();
+            Image fgImage = fgGo.AddComponent<Image>();
+            fgRectTransform.sizeDelta = new Vector2(width, height);
+            fgImage.sprite = PsdImporter.CreateSprite(fgLayer);
+
+            GameObject maskGo = new GameObject("Mask");
+            RectTransform maskRectTransform = maskGo.AddComponent<RectTransform>();
+            Image maskImg = maskGo.AddComponent<Image>();
+            maskGo.AddComponent<UnityEngine.UI.Mask>();
+            maskRectTransform.sizeDelta = new Vector2(width, height);
+            //maskImg.sprite = Resources.Load<Sprite>("unity_builtin_extra/UIMask");
+            maskImg.color = new Color(1, 1, 1, 0.01f);
+
+            GameObject bgGo;
+            RectTransform bgRectTransform = null;
+            if (bgLayer != null)
+            {
+                float bgWidth = bgLayer.Rect.width / PsdImporter.PixelsToUnits;
+                float bgHeight = bgLayer.Rect.height / PsdImporter.PixelsToUnits;
+
+                bgGo = new GameObject("Background");
+                bgRectTransform = bgGo.AddComponent<RectTransform>();
+                Image bgImage = bgGo.AddComponent<Image>();
+                bgRectTransform.sizeDelta = new Vector2(bgWidth, bgHeight);
+                bgImage.sprite = PsdImporter.CreateSprite(bgLayer);
+                bgRectTransform.SetParent(rectTransform);
+                bgRectTransform.localPosition = Vector3.zero;
+                layer.Children.Remove(bgLayer);
+            }
+
+           
+
+            Vector2 pivotOrAnchor = Vector2.zero;
+
+            switch (direction)
+            {
+                case Direction.LeftToRight: pivotOrAnchor = new Vector2(0, 0.5f);break;
+                case Direction.RightToLeft: pivotOrAnchor = new Vector2(1, 0.5f);break;
+                case Direction.TopToButtom: pivotOrAnchor = new Vector2(0.5f, 1); break;
+                case Direction.ButtomToTop: pivotOrAnchor = new Vector2(0.5f,0);break;
+            }
+
+
+            maskRectTransform.SetParent(rectTransform);
+            maskRectTransform.localPosition = new Vector3((pivotOrAnchor.x - 0.5f)*fgLayer.Rect.width,(pivotOrAnchor.y - 0.5f)*fgLayer.Rect.height,0);
+
+            Debug.Log(maskRectTransform.localPosition);
+            fgRectTransform.SetParent(maskRectTransform);
+            fgRectTransform.localPosition = Vector3.zero;
+
+            maskRectTransform.pivot = pivotOrAnchor;
+            fgRectTransform.pivot = pivotOrAnchor;
+            fgRectTransform.anchorMax = pivotOrAnchor;
+            fgRectTransform.anchorMin = pivotOrAnchor;
+
+            layer.Children.Remove(fgLayer);
+
+            UINode node = new UINode();
+            node.rect = fgLayer.Rect;
+            node.go = progressGo;
+            return node;
+
+        }
         public static UINode CreateImage(Layer layer)
         {
+
+
             Layer imgLayer = layer;
             foreach(var child in layer.Children)
             {

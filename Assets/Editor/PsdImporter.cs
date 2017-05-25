@@ -534,6 +534,10 @@ namespace PsdLayoutTool
             {
                 node = PsdControl.CreateRectTransform(layer);
             }
+            else if(groupClass == GroupClass.Progress)
+            {
+                node = PsdControl.CreateProgress(layer);
+            }
             else if(groupClass == GroupClass.Empty)
             {
                 return;
@@ -543,10 +547,13 @@ namespace PsdLayoutTool
                 return; 
             }
             //添加了node
-            _currNode.children.Add(node);
-            _currNode = node;
-            ExportTree(layer.Children);
-            _currNode = oldNode;
+            if (node != null)
+            {
+                _currNode.children.Add(node);
+                _currNode = node;
+                ExportTree(layer.Children);
+                _currNode = oldNode;
+            }
         }
 
 

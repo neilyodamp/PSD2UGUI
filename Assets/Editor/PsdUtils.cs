@@ -109,10 +109,6 @@ namespace PsdLayoutTool
                 rectTransform.anchorMax.y == rectTransform.anchorMin.y)
             {
                 root.go.transform.position = new Vector3(x + (rect.width / 2), y - (rect.height / 2), 0);
-               /* root.go.transform.position = new Vector3(root.go.transform.position.x + canvasPosition.x,
-                    root.go.transform.position.y + canvasPosition.y,
-                   root.go.transform.position.y + canvasPosition.z);
-                   */
 
                 rectTransform.sizeDelta = new Vector2(width, height);
             }
