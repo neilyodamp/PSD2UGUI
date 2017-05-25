@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using UnityEngine;
 
 namespace PhotoshopFile
 {
@@ -19,6 +17,8 @@ namespace PhotoshopFile
         private static readonly int Version5OrLaterBit = BitVector32.CreateMask(ObsoleteBit);
         private static readonly int PixelDataIrrelevantBit = BitVector32.CreateMask(Version5OrLaterBit);
 
+        public static Regex SLICE_REG = new Regex(@"\d+[x]\d+$");
+        public static char SLICE_SEPECTOR = 'x';
         public static Regex ZH_REG = new Regex(@"[\u4E00-\u9FBF]");
         private static int _readIndex = 0;
 
@@ -64,6 +64,18 @@ namespace PhotoshopFile
         public List<Channel> Channels { get; private set; }
         public SortedList<short, Channel> SortedChannels { get; private set; }
         public byte Opacity { get; private set; }
+
+        private bool _is9Slice;
+        public bool Is9Slice
+        {
+            get { return _is9Slice; }
+        }
+
+        private Vector4 _border = Vector4.zero;
+        public Vector4 Border
+        {
+            get { return _border; }
+        }
 
         public bool Visible
         {
@@ -214,6 +226,17 @@ namespace PhotoshopFile
 
             reader.BaseStream.Position = num4;
 
+            int deltaL = (int)(MaskData.Rect.x - Rect.x);
+            int deltaR = (int)(Rect.xMax - MaskData.Rect.xMax);
+            int deltaT = (int)(MaskData.Rect.y - Rect.y);
+            int deltaB = (int)(Rect.yMax - MaskData.Rect.yMax);
+            int l = deltaL > 0 ? deltaL : 0;
+            int r = deltaR > 0 ? deltaR : 0;
+            int t = deltaT > 0 ? deltaT : 0;
+            int b = deltaB > 0 ? deltaB : 0;
+            //Unity Document TextureImporter.spriteBorder  X=left, Y=bottom, Z=right, W=top.
+            _border = new Vector4(l, b, r, t);
+            _is9Slice = SLICE_REG.Match(_name).Success;
 
         }
 
