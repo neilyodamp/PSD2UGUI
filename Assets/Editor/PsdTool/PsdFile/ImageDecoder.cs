@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using System.Text.RegularExpressions;
 namespace PhotoshopFile
 {
     /// <summary>
@@ -37,16 +38,53 @@ namespace PhotoshopFile
 
                     colors[texturePosition] = GetColor(layer, layerPosition);
 
-                    // set the alpha
-                    if (layer.SortedChannels.ContainsKey(-2))
-                    {
-                        byte color = GetColor(layer.MaskData, x, y);
-                        colors[texturePosition].a = (byte)(colors[texturePosition].a * color);
-                    }
+                    //// set the alpha
+                    //if(layer.SortedChannels.ContainsKey(-2))
+                    //{
+                    //    byte color = GetColor(layer.MaskData, x, y);
+                    //    colors[texturePosition].a = (byte)(colors[texturePosition].a * color);
+                    //}
                 }
             }
 
             texture.SetPixels32(colors);
+
+            if(layer.Is9Slice)
+            {
+
+                Regex reg = Layer.SLICE_REG;
+                string[] size = reg.Match(layer.Name).ToString().Split(Layer.SLICE_SEPECTOR);
+                int width = 0;
+                int height = 0;
+                //l t r b     Border l b r t
+                // y w
+                if(layer.Border.x == 0 || layer.Border.z == 0)
+                {
+                    width = (int)layer.Rect.width;
+                    height = int.Parse(size[1]);
+                }
+                else if(layer.Border.y == 0 || layer.Border.w == 0)
+                {
+                    height = (int)layer.Rect.height;
+                    width = int.Parse(size[0]);
+                }
+
+                if(layer.Border.x != 0 && layer.Border.y != 0 && layer.Border.z != 0 && layer.Border.w != 0 && size.Length >= 2)
+                {
+                    width = int.Parse(size[0]);
+                    height = int.Parse(size[1]);
+                }
+
+                int destWidth = (int)(layer.Border.x + layer.Border.z + width);
+                int destHeight = (int)(layer.Border.y + layer.Border.w + height);
+
+                float scaleFactorX = (texture.width * 1.0f - layer.Border.x - layer.Border.z) / width;
+                float scaleFactorY = (texture.height * 1.0f - layer.Border.y - layer.Border.w) / height;
+
+                return Util9Slice.Create9Slice(texture, new Params((int)layer.Border.x, (int)layer.Border.z, (int)layer.Border.w, (int)layer.Border.y,
+                    width, height, destWidth, destHeight, scaleFactorX, scaleFactorY));
+            }
+
             return texture;
         }
 

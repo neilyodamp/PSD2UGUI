@@ -218,7 +218,7 @@ namespace PsdLayoutTool
 
         private static void ResetSlicedImage(Transform[] allChilds)
         {
-            Regex reg = new Regex(@"\d+[_]\d+$");
+            Regex reg = Layer.SLICE_REG;
             for (int index = 0; index < allChilds.Length; index++)
             {
                 Transform tran = allChilds[index];
@@ -235,13 +235,13 @@ namespace PsdLayoutTool
                         Vector2 layoutSize = Vector2.zero;
                         if (match.ToString() != "")
                         {
-                            string[] size = reg.Match(str1).ToString().Split('_');
+                            string[] size = reg.Match(str1).ToString().Split(Layer.SLICE_SEPECTOR);
                             layoutSize.x = Convert.ToInt32(size[0]);
                             layoutSize.y = Convert.ToInt32(size[1]);
                         }
                         if (layoutSize.x != 0 && layoutSize.y != 0)
                         {
-                            image.GetComponent<RectTransform>().sizeDelta = layoutSize;
+                            //image.GetComponent<RectTransform>().sizeDelta = layoutSize;
                             image.type = Image.Type.Sliced;
 
                             if (image.sprite.border == Vector4.zero)
@@ -607,26 +607,12 @@ namespace PsdLayoutTool
             {
                 // decode the layer into a texture
                 Texture2D texture = ImageDecoder.DecodeImage(layer);
-
-                string writePath = _currentPath;
-                string layerName = TrimSpecialHead(layer.Name);
-
-                if (layerName.Contains(PUBLIC_IMG_HEAD))
-                {
-                    int length = writePath.Length - 1;
-                    if (writePath.LastIndexOf(@"/") != -1)
-                        length = writePath.LastIndexOf(@"/");
-
-                    writePath = writePath.Substring(0, length);
-                    writePath += PUBLIC_IMG_PATH;
-                }
-
-                if (!Directory.Exists(writePath))
+                string writePath;
+                file = GetFilePath(layer, out writePath);
+                if(!Directory.Exists(writePath))
                 {
                     Directory.CreateDirectory(writePath);
                 }
-
-                file = Path.Combine(writePath, layerName + ".png");
 
                 Vector2 size = layer.Rect.size;
                 if (size.x >= LargeImageAlarm.x || size.y >= LargeImageAlarm.y)
@@ -639,6 +625,27 @@ namespace PsdLayoutTool
 
             return file;
         }
+
+        private static string GetFilePath(Layer layer, out string writePath)
+        {
+            string file = string.Empty;
+            writePath = _currentPath;
+            string layerName = TrimSpecialHead(layer.Name);
+
+            if(layerName.Contains(PUBLIC_IMG_HEAD))
+            {
+                int length = writePath.Length - 1;
+                if(writePath.LastIndexOf(@"/") != -1)
+                    length = writePath.LastIndexOf(@"/");
+
+                writePath = writePath.Substring(0, length);
+                writePath += PUBLIC_IMG_PATH;
+            }
+
+            file = Path.Combine(writePath, layerName + ".png");
+            return file;
+        }
+
         private static string TrimSpecialHead(string str)
         {
             if (str.IndexOf(BTN_HEAD) == 0)
@@ -658,19 +665,25 @@ namespace PsdLayoutTool
 
             if (layer.Children.Count == 0 && layer.Rect.width > 0)
             {
-                string file = CreatePNG(layer);
-                sprite = ImportSprite(GetRelativePath(file), packingTag);
-
+                string writePath;
+                string file = GetFilePath(layer, out writePath);
                 if (!_imageDic.ContainsKey(file))
                 {
+                    CreatePNG(layer);
+                    sprite = ImportSprite(GetRelativePath(file), packingTag, layer.Is9Slice ? layer : null);
                     _imageDic.Add(file, sprite);
                 }
+                else
+                {
+                    return _imageDic[file];
+                }
+
             }
 
             return sprite;
         }
 
-        private static Sprite ImportSprite(string relativePathToSprite, string packingTag)
+        private static Sprite ImportSprite(string relativePathToSprite, string packingTag, Layer layer)
         {
             AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
 
@@ -684,6 +697,10 @@ namespace PsdLayoutTool
                 textureImporter.maxTextureSize = 2048;
                 textureImporter.spritePixelsPerUnit = PixelsToUnits;
                 textureImporter.spritePackingTag = packingTag;
+                if(null != layer)
+                {
+                    textureImporter.spriteBorder = layer.Border;
+                }
             }
 
             AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
