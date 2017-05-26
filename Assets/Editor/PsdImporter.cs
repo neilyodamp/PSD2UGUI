@@ -29,6 +29,7 @@ namespace PsdLayoutTool
         private const string SCROLL_SIZE = "@Size";
 
         private static string _currentPath;
+        private static string _texturePath;
 
         private static GameObject _rootPsdGameObject;
         private static GameObject _currentGroupGameObject;
@@ -144,8 +145,10 @@ namespace PsdLayoutTool
             _psdName = asset.Replace(assetPathWithoutFilename, string.Empty).Replace(".psd", string.Empty);
 
             _currentPath = PsdUtils.GetFullProjectPath() + "Assets/" + CURR_IMG_PATH_ROOT;
+            _texturePath = Path.Combine(_currentPath, "Textures");
             _currentPath = Path.Combine(_currentPath, _psdName);
 
+            CreateDic(_texturePath);
             CreateDic(_currentPath);
 
             if (_layoutInScene || _createPrefab)
@@ -609,15 +612,7 @@ namespace PsdLayoutTool
 
             if (layer.Children.Count == 0 && layer.Rect.width > 0)
             {
-                //// decode the layer into a texture
-                //Texture2D texture = ImageDecoder.DecodeImage(layer);
-                //string writePath;
-                //file = GetFilePath(layer, out writePath);
-                //if(!Directory.Exists(writePath))
-                //{
-                //    Directory.CreateDirectory(writePath);
-                //}
-                Texture2D texture = DoCreateTexture(layer, out file);
+                Texture2D texture = DoCreatePNG(layer, out file);
                 Vector2 size = layer.Rect.size;
                 if (size.x >= LargeImageAlarm.x || size.y >= LargeImageAlarm.y)
                 {
@@ -629,11 +624,23 @@ namespace PsdLayoutTool
             return file;
         }
 
-        private static Texture2D DoCreateTexture(Layer layer ,out string file)
+        private static Texture2D DoCreatePNG(Layer layer, out string file)
         {
             Texture2D texture = ImageDecoder.DecodeImage(layer);
             string writePath;
             file = GetFilePath(layer, out writePath);
+            if(!Directory.Exists(writePath))
+            {
+                Directory.CreateDirectory(writePath);
+            }
+            return texture;
+        }
+
+        private static Texture2D DoCreateTexture(Layer layer, out string file)
+        {
+            Texture2D texture = ImageDecoder.DecodeImage(layer);
+            string writePath;
+            file = GetTextureFilePath(layer, out writePath);
             if(!Directory.Exists(writePath))
             {
                 Directory.CreateDirectory(writePath);
@@ -658,6 +665,14 @@ namespace PsdLayoutTool
             }
 
             file = Path.Combine(writePath, layerName + ".png");
+            return file;
+        }
+
+        private static string GetTextureFilePath(Layer layer, out string writePath)
+        {
+            string file = string.Empty;
+            writePath = _texturePath;
+            file = Path.Combine(writePath, layer.Name + ".png");
             return file;
         }
 
@@ -713,14 +728,13 @@ namespace PsdLayoutTool
                 {
                     textureImporter.textureType = TextureImporterType.GUI;
                     textureImporter.mipmapEnabled = false;
-                    textureImporter.spriteImportMode = SpriteImportMode.Single;
-                    textureImporter.spritePivot = new Vector2(0.5f, 0.5f);
+                    //textureImporter.spriteImportMode = SpriteImportMode.Single;
                     textureImporter.maxTextureSize = 2048;
-                    textureImporter.spritePixelsPerUnit = PixelsToUnits;
-                    //textureImporter.spritePackingTag = packingTag;
                 }
                 AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
+                texture = (Texture2D)AssetDatabase.LoadAssetAtPath(relativePathToSprite, typeof(Texture2D));
             }
+            
             return texture;
 
         }
