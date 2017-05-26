@@ -13,9 +13,6 @@ namespace PsdLayoutTool
 {
     public static class PsdImporter
     {
-        public const string BTN_HEAD = "btn_";
-        public const string BTN_TAIL_HIGH = "_highlight";
-        public const string BTN_TAIL_DIS = "_disable";
         public const string PUBLIC_IMG_HEAD = "public_";
 
         public const string PSD_TAIL = ".psd";
@@ -54,6 +51,11 @@ namespace PsdLayoutTool
         {
             return _canvasObj.transform.position;
         }
+        public static GameObject CanvasObj
+        {
+            get { return _canvasObj; }
+        }
+
 
         public static float MaximumDepth { get; set; }
         public static float PixelsToUnits { get; set; }
@@ -91,15 +93,10 @@ namespace PsdLayoutTool
 
         static PsdImporter()
         {
-            _textFont = TEST_FONT_NAME;//.otf";//yanru测试字体
+            _textFont = TEST_FONT_NAME;
 
             MaximumDepth = 1;
             PixelsToUnits = 100;
-        }
-
-        public static void ExportLayersAsTextures(string assetPath)
-        {
-
         }
 
         public static void LayoutInCurrentScene(string assetPath, bool useCurImageSize = false)
@@ -161,18 +158,16 @@ namespace PsdLayoutTool
                 _rootPsdGameObject = CreateObj(_psdName);
                 _rootPsdGameObject.transform.SetParent(_canvasObj.transform, false);
                 _rootNode = new UINode();
-                _rootNode.go = _rootPsdGameObject;
+                _rootNode.Go = _rootPsdGameObject;
                 
                 RectTransform rectRoot = _rootPsdGameObject.GetComponent<RectTransform>();
-                rectRoot.anchorMin = new Vector2(0, 0);
-                rectRoot.anchorMax = new Vector2(1, 1);
+                rectRoot.anchorMin = new Vector2(0.5f, 0.5f);
+                rectRoot.anchorMax = new Vector2(0.5f, 0.5f);
                 rectRoot.offsetMin = Vector2.zero;
                 rectRoot.offsetMax = Vector2.zero;
 
                 Vector3 rootPos = Vector3.zero;
                 _rootPsdGameObject.transform.position = Vector3.zero;
-                //updateRectPosition(rootPsdGameObject, rootPos, true);
-
                 _currentGroupGameObject = _rootPsdGameObject;
                 _currNode = _rootNode;
             }
@@ -182,32 +177,16 @@ namespace PsdLayoutTool
             ExportTree(tree,_currNode);
             PsdUtils.CreateUIHierarchy(_rootNode);
             PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
+            
             if (_createPrefab)
             {
                 UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab(asset.Replace(".psd", ".prefab"));
                 PrefabUtility.ReplacePrefab(_rootPsdGameObject, prefab);
             }
 
-            //step1:刷新按钮SpriteState，删除按钮状态Image
-            //UpdateBtnsSpriteState();
-
-            //step2:最后删除多余的图片aaa(1),aaa(1)_highlight这种。并调整引用
-            DeleteExtraImages();
-
-            //step3:矫正 scale问题 
-            Transform[] allChilds = _rootPsdGameObject.GetComponentsInChildren<Transform>();
-            ResetRectSize(allChilds);
-
-            //step4: 刷新九宫格图片
-            ResetSlicedImage(allChilds);
-
-            //step4:最后矫正 UI根节点坐标
-            ResetRootRect();
-
             AssetDatabase.Refresh();
-
-
         }
+
         private static void ResetRootRect()
         {
             RectTransform root_rect = _rootPsdGameObject.GetComponent<RectTransform>();
@@ -217,189 +196,12 @@ namespace PsdLayoutTool
             root_rect.offsetMax = Vector2.zero;
         }
 
-        private static void ResetSlicedImage(Transform[] allChilds)
-        {
-            Regex reg = Layer.SLICE_REG;
-            for (int index = 0; index < allChilds.Length; index++)
-            {
-                Transform tran = allChilds[index];
-                if (_useRealImageSize == false)
-                {
-                    Image image = tran.GetComponent<Image>();
-                    if (image != null && image.sprite != null)
-                    {
-                        string spriteName = image.sprite.name;
-
-                        string str1 = spriteName;
-
-                        Match match = reg.Match(str1);
-                        Vector2 layoutSize = Vector2.zero;
-                        if (match.ToString() != "")
-                        {
-                            string[] size = reg.Match(str1).ToString().Split(Layer.SLICE_SEPECTOR);
-                            layoutSize.x = Convert.ToInt32(size[0]);
-                            layoutSize.y = Convert.ToInt32(size[1]);
-                        }
-                        if (layoutSize.x != 0 && layoutSize.y != 0)
-                        {
-                            //image.GetComponent<RectTransform>().sizeDelta = layoutSize;
-                            image.type = Image.Type.Sliced;
-
-                            if (image.sprite.border == Vector4.zero)
-                            {
-                                Debug.LogError(Time.time + "need to set png=" + image.sprite.name + ",slice border");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private static void ResetRectSize(Transform[] allChilds)
-        {
-            for (int index = 0; index < allChilds.Length; index++)
-            {
-                RectTransform rect = allChilds[index].GetComponent<RectTransform>();
-                allChilds[index].transform.localScale = Vector3.one;
-                if (rect == null)
-                    continue;
-
-                Vector2 curSize = rect.sizeDelta;
-                curSize.x *= PixelsToUnits;// rect.transform.localScale.x;
-                curSize.y *= PixelsToUnits;// rect.transform.localScale.y;
-
-                rect.sizeDelta = curSize;
-            }
-        }
-
-        private static void DeleteExtraImages()
-        {
-            List<string> imgaePathList = new List<string>(_imageDic.Keys);
-            for (int index = 0; index < imgaePathList.Count; index++)
-            {
-                string pathtemp = imgaePathList[index];
-                if (SpriteNameExtra(pathtemp) != "")
-                {
-                    File.Delete(pathtemp);
-                }
-            }
-        }
-
-        private static void UpdateBtnsSpriteState()
-        {
-            Dictionary<Transform, bool> _dealDic = new Dictionary<Transform, bool>(); //flag if item will be deleted
-
-            List<Transform> btnList = new List<Transform>();
-            List<Transform> deleteList = new List<Transform>();
-
-            Transform[] allChild = _rootPsdGameObject.GetComponentsInChildren<Transform>();
-
-            List<Sprite> canUseSpriteList = new List<Sprite>(); //最终可用的Sprite列表
-
-            for (int index = 0; index < allChild.Length; index++)
-            {
-                Transform tran = allChild[index];
-                if (tran.name.IndexOf(BTN_HEAD) == 0) //is a button
-                {
-                    Button button = tran.gameObject.AddComponent<Button>();
-                    tran.GetComponent<Image>().raycastTarget = true;
-                    button.transition = Selectable.Transition.SpriteSwap;
-                    btnList.Add(tran);
-                }
-            }
-
-            for (int btnIndex = 0; btnIndex < btnList.Count; btnIndex++)
-            {
-                string btnName = btnList[btnIndex].name;
-
-                for (int index = 0; index < allChild.Length; index++)
-                {
-                    Transform tran = allChild[index];
-
-                    if (allChild[index].name.IndexOf(btnName) == 0)
-                    {
-                        if (allChild[index].name.Contains(BTN_TAIL_HIGH))//button highlight image
-                        {
-                            SpriteState sprite = btnList[btnIndex].GetComponent<Button>().spriteState;
-                            sprite.pressedSprite = allChild[index].GetComponent<Image>().sprite;
-                            btnList[btnIndex].GetComponent<Button>().spriteState = sprite;
-                            deleteList.Add(tran);
-                            CheckAddSprite(ref canUseSpriteList, sprite.pressedSprite);
-                        }
-                        else if (allChild[index].name.Contains(BTN_TAIL_DIS))//button disable image 
-                        {
-                            SpriteState sprite = btnList[btnIndex].GetComponent<Button>().spriteState;
-                            sprite.disabledSprite = allChild[index].GetComponent<Image>().sprite;
-                            btnList[btnIndex].GetComponent<Button>().spriteState = sprite;
-                            deleteList.Add(tran);
-                            CheckAddSprite(ref canUseSpriteList, sprite.disabledSprite);
-                        }
-                        else if (allChild[index].GetComponent<Image>() != null)
-                        {
-                            CheckAddSprite(ref canUseSpriteList, allChild[index].GetComponent<Image>().sprite);
-                        }
-                    }
-                }
-            }
-
-            //delete no use items
-            for (int index = 0; index < deleteList.Count; index++)
-            {
-                DestroyItem(deleteList[index]);
-            }
-
-            for (int index = 0; index < allChild.Length; index++)
-            {
-                if (allChild[index] == null)
-                    continue;
-                Button button = allChild[index].GetComponent<Button>();
-                if (button == null)
-                    continue;
-
-                SpriteState sprite = button.spriteState;
-                if (sprite.pressedSprite != null)
-                {
-                    sprite.pressedSprite = RescriteBtnSprite(canUseSpriteList, sprite.pressedSprite);
-                }
-                if (sprite.disabledSprite != null)
-                {
-                    sprite.disabledSprite = RescriteBtnSprite(canUseSpriteList, sprite.disabledSprite);
-                }
-                Sprite normalSprite = button.GetComponent<Image>().sprite;
-                normalSprite = RescriteBtnSprite(canUseSpriteList, normalSprite);
-                button.GetComponent<Image>().sprite = normalSprite;
-
-                button.spriteState = sprite;
-            }
-        }
-
         private static Sprite RescriteBtnSprite(List<Sprite> canUseSpriteList, Sprite sprite)
         {
             return null;
         }
 
-        private static void CheckAddSprite(ref List<Sprite> list, Sprite sprite)
-        {
-            if (SpriteNameExtra(sprite.name) == "")
-            {
-                list.Add(sprite);
-            }
-        }
 
-        private static string SpriteNameExtra(string itemName)
-        {
-            Regex reg = new Regex(@"[(]+\d+[)]");
-            string tempLayerName = itemName;
-            tempLayerName = tempLayerName.TrimEnd(BTN_TAIL_DIS.ToCharArray());
-            tempLayerName = tempLayerName.TrimEnd(BTN_TAIL_HIGH.ToCharArray());
-            Match match = reg.Match(tempLayerName);
-            if (match.ToString() != "")
-            {
-                string res = tempLayerName.Replace(match.ToString(), "");
-                return match.ToString();
-            }
-            return "";
-        }
 
         private static void DestroyItem(Transform child)
         {
@@ -580,27 +382,7 @@ namespace PsdLayoutTool
         {
             return null;
         }
-        private static void ExportArtLayer(Layer layer)
-        {
-            if (!layer.IsTextLayer)
-            {
-                if (_layoutInScene || _createPrefab)
-                {
-                    CreateUIImage(layer);
-                }
-                else
-                {
-                    CreatePNG(layer);
-                }
-            }
-            else
-            {
-                if (_layoutInScene || _createPrefab)
-                {
-                    //CreateUIText(layer);
-                }
-            }
-        }
+
         private static string CreatePNG(Layer layer)
         {
             string file = string.Empty;
@@ -647,7 +429,7 @@ namespace PsdLayoutTool
         {
             string file = string.Empty;
             writePath = _currentPath;
-            string layerName = TrimSpecialHead(layer.Name);
+            string layerName = layer.Name;
 
             if(layerName.Contains(PUBLIC_IMG_HEAD))
             {
@@ -669,14 +451,6 @@ namespace PsdLayoutTool
             writePath = _texturePath;
             file = Path.Combine(writePath, layer.Name + ".png");
             return file;
-        }
-
-        private static string TrimSpecialHead(string str)
-        {
-            if (str.IndexOf(BTN_HEAD) == 0)
-                return str.Replace(BTN_HEAD, "");
-
-            return str;
         }
 
         public static Sprite CreateSprite(Layer layer)
@@ -749,6 +523,7 @@ namespace PsdLayoutTool
                 textureImporter.maxTextureSize = 2048;
                 textureImporter.spritePixelsPerUnit = PixelsToUnits;
                 textureImporter.spritePackingTag = packingTag;
+                textureImporter.alphaIsTransparency = true;
                 if(null != layer)
                 {
                     textureImporter.spriteBorder = layer.Border;
@@ -827,7 +602,8 @@ namespace PsdLayoutTool
 #endif
 
             RectTransform transform = _canvasObj.GetComponent<RectTransform>();
-            UpdateRectSize(ref transform, _canvasSize.x / PixelsToUnits, _canvasSize.y / PixelsToUnits);
+            UpdateRectSize(ref transform, _canvasSize.x , _canvasSize.y);
+            transform.position = new Vector3(_canvasSize.x/2,_canvasSize.y/2,0);
 
             scaler.dynamicPixelsPerUnit = PixelsToUnits;
             scaler.referencePixelsPerUnit = PixelsToUnits;
@@ -836,49 +612,6 @@ namespace PsdLayoutTool
             if (racaster == null)
                 racaster = _canvasObj.AddComponent<GraphicRaycaster>();
 
-        }
-
-        private static Image CreateUIImage(Layer layer)
-        {
-
-
-            float x = layer.Rect.x;
-            float y = layer.Rect.y;
-
-            y = (_canvasSize.y) - y;
-
-            x = x - ((_canvasSize.x / 2));
-            y = y - ((_canvasSize.y / 2));
-
-            float width = layer.Rect.width / PixelsToUnits;
-            float height = layer.Rect.height / PixelsToUnits;
-
-            GameObject gameObject = CreateObj(layer.Name);
-
-            gameObject.transform.position = new Vector3(x + (layer.Rect.width / 2), y - (layer.Rect.height / 2), _currentDepth);
-
-            gameObject.transform.SetParent(_currentGroupGameObject.transform, false); //.transform);
-
-            gameObject.transform.position = new Vector3(gameObject.transform.position.x + _currentGroupGameObject.transform.position.x, gameObject.transform.position.y + _currentGroupGameObject.transform.position.y, gameObject.transform.position.z);
-
-            _currentDepth -= _depthStep; 
-
-            Image image = gameObject.AddComponent<Image>();
-            image.sprite = CreateSprite(layer);
-            image.raycastTarget = false; //can not click Image by yanru 2016-06-16 19:26:55
-
-            // 对于Image，如果当前图层指定了透明度，刷新透明度
-            if (layer.ImageTransparent <= 1f)
-            {
-                Color imageColor = image.color;
-                imageColor.a = layer.ImageTransparent;
-                image.color = imageColor;
-            }
-
-            RectTransform transform = gameObject.GetComponent<RectTransform>();
-            UpdateRectSize(ref transform, width, height);
-
-            return image;
         }
 
         private static void UpdateRectSize(ref RectTransform transform, float width, float height)
@@ -905,11 +638,6 @@ namespace PsdLayoutTool
             return font;
         }
 
-        private static void CreateUIButton(Layer layer)
-        {
-            Image image = CreateUIImage(layer);
-        }
-
         private static void UpdateLayerName(Layer child, string newName)
         {
             child.Name = newName;
@@ -918,16 +646,29 @@ namespace PsdLayoutTool
 
     public class UINode
     {
-        public GameObject go;
+        private GameObject _go;
+
         public Rect rect;
         public List<UINode> children;
         public Vector2 pivot;
 
+        public GameObject Go
+        {
+            get
+            {
+                return _go;
+            }
+            set
+            {    
+                _go = value;
+            }
+        }
 
         public UINode()
         {
             pivot = new Vector2(0.5f,0.5f);
             children = new List<UINode>();
+
         }
     }
 
