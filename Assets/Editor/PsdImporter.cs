@@ -851,7 +851,7 @@ namespace PsdLayoutTool
 
             gameObject.transform.position = new Vector3(gameObject.transform.position.x + _currentGroupGameObject.transform.position.x, gameObject.transform.position.y + _currentGroupGameObject.transform.position.y, gameObject.transform.position.z);
 
-            _currentDepth -= _depthStep;
+            _currentDepth -= _depthStep; 
 
             Image image = gameObject.AddComponent<Image>();
             image.sprite = CreateSprite(layer);

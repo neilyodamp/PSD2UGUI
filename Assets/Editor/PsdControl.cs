@@ -96,7 +96,6 @@ namespace PsdLayoutTool
         }
         public static UINode CreateProgress(Layer layer)
         {
-            Debug.Log("create Progres");
             Direction direction = Direction.LeftToRight;
             if(layer.Name.Contains(RIGHT2LEFT))
             {
@@ -190,7 +189,6 @@ namespace PsdLayoutTool
             maskRectTransform.SetParent(rectTransform);
             maskRectTransform.localPosition = new Vector3((pivotOrAnchor.x - 0.5f)*fgLayer.Rect.width,(pivotOrAnchor.y - 0.5f)*fgLayer.Rect.height,0);
 
-            Debug.Log(maskRectTransform.localPosition);
             fgRectTransform.SetParent(maskRectTransform);
             fgRectTransform.localPosition = Vector3.zero;
 
