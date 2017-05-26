@@ -121,7 +121,7 @@ public static class Util9Slice
 
     private static void SetPixelsLeft(int x, int y, Params param, TextureParam tParam)
     {
-        float uvX = 1.0F / (tParam.sourceTex.width - 1) * x;
+        float uvX = 1.0F / (tParam.sourceTex.width) * x;
         float uvY = param.b * 1.0F / tParam.sourceTex.height + 1.0F / tParam.sourceTex.height * param.scaleFactorY * (y - param.b);
         tParam.destPix[y * tParam.destTex.width + x] = tParam.sourceTex.GetPixelBilinear(uvX, uvY);
     }
@@ -134,10 +134,11 @@ public static class Util9Slice
 
     private static void SetPixelsTop(int x, int y, Params param, TextureParam tParam)
     {
-
+        
         float uvX = param.l * 1.0f / tParam.sourceTex.width + 1.0f / tParam.sourceTex.width * param.scaleFactorX * (x - param.l);
-        float uvY = ((tParam.sourceTex.height * 1.0f - param.t) / tParam.sourceTex.height) + 1.0f / tParam.sourceTex.height * (y - param.destHeight + param.t);
+        float uvY = (tParam.sourceTex.height * 1.0f - param.t) / tParam.sourceTex.height + 1.0f / tParam.sourceTex.height * (y - param.destHeight + param.t);
         tParam.destPix[y * tParam.destTex.width + x] = tParam.sourceTex.GetPixelBilinear(uvX, uvY);
+
     }
 
     private static void SetPixelsCenter(int x, int y, Params param, TextureParam tParam)
@@ -151,7 +152,7 @@ public static class Util9Slice
     {
 
         float uvX = param.l * 1.0f / tParam.sourceTex.width + 1.0f / tParam.sourceTex.width * param.scaleFactorX * (x - param.l);
-        float uvY = 1.0f / (tParam.sourceTex.height - 1) * y;
+        float uvY = 1.0f / (tParam.sourceTex.height) * y;
         tParam.destPix[y * tParam.destTex.width + x] = tParam.sourceTex.GetPixelBilinear(uvX, uvY);
 
     }

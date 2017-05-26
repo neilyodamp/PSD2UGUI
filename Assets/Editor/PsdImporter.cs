@@ -538,6 +538,10 @@ namespace PsdLayoutTool
             {
                 node = PsdControl.CreateProgress(layer);
             }
+            else if(groupClass == GroupClass.Texture)
+            {
+                node = PsdControl.CreateTexture(layer);
+            }
             else if(groupClass == GroupClass.Empty)
             {
                 return;
@@ -601,25 +605,36 @@ namespace PsdLayoutTool
 
             if (layer.Children.Count == 0 && layer.Rect.width > 0)
             {
-                // decode the layer into a texture
-                Texture2D texture = ImageDecoder.DecodeImage(layer);
-                string writePath;
-                file = GetFilePath(layer, out writePath);
-                if(!Directory.Exists(writePath))
-                {
-                    Directory.CreateDirectory(writePath);
-                }
-
+                //// decode the layer into a texture
+                //Texture2D texture = ImageDecoder.DecodeImage(layer);
+                //string writePath;
+                //file = GetFilePath(layer, out writePath);
+                //if(!Directory.Exists(writePath))
+                //{
+                //    Directory.CreateDirectory(writePath);
+                //}
+                Texture2D texture = DoCreateTexture(layer, out file);
                 Vector2 size = layer.Rect.size;
                 if (size.x >= LargeImageAlarm.x || size.y >= LargeImageAlarm.y)
                 {
                     Debug.Log(Time.time + "图片=" + file + ",尺寸=" + size + "较大！考虑单拆图集！");
                 }
-
                 File.WriteAllBytes(file, texture.EncodeToPNG());
             }
 
             return file;
+        }
+
+        private static Texture2D DoCreateTexture(Layer layer ,out string file)
+        {
+            Texture2D texture = ImageDecoder.DecodeImage(layer);
+            string writePath;
+            file = GetFilePath(layer, out writePath);
+            if(!Directory.Exists(writePath))
+            {
+                Directory.CreateDirectory(writePath);
+            }
+            return texture;
         }
 
         private static string GetFilePath(Layer layer, out string writePath)
@@ -677,6 +692,33 @@ namespace PsdLayoutTool
             }
 
             return sprite;
+        }
+
+        public static Texture2D CreateTexture2D(Layer layer)
+        {
+            string file = string.Empty;
+            Texture2D texture = null;
+            if(layer.Children.Count == 0 && layer.Rect.width > 0)
+            {
+                texture = DoCreateTexture(layer, out file);
+                File.WriteAllBytes(file, texture.EncodeToPNG());
+                string relativePathToSprite = GetRelativePath(file);
+                AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
+                TextureImporter textureImporter = AssetImporter.GetAtPath(relativePathToSprite) as TextureImporter;
+                if(textureImporter != null)
+                {
+                    textureImporter.textureType = TextureImporterType.GUI;
+                    textureImporter.mipmapEnabled = false;
+                    textureImporter.spriteImportMode = SpriteImportMode.Single;
+                    textureImporter.spritePivot = new Vector2(0.5f, 0.5f);
+                    textureImporter.maxTextureSize = 2048;
+                    textureImporter.spritePixelsPerUnit = PixelsToUnits;
+                    //textureImporter.spritePackingTag = packingTag;
+                }
+                AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
+            }
+            return texture;
+
         }
 
         private static Sprite ImportSprite(string relativePathToSprite, string packingTag, Layer layer)

@@ -306,5 +306,34 @@ namespace PsdLayoutTool
             return node;
         }
 
+        public static UINode CreateTexture(Layer layer)
+        {
+
+            Layer imgLayer = layer;
+            foreach(var child in layer.Children)
+            {
+                if(!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
+                {
+                    imgLayer = child;
+                    break;
+                }
+            }
+            layer.Children.Remove(imgLayer);
+            float width = imgLayer.Rect.width / PsdImporter.PixelsToUnits;
+            float height = imgLayer.Rect.height / PsdImporter.PixelsToUnits;
+
+            GameObject go = new GameObject(layer.Name);
+            RectTransform goRectTransform = go.AddComponent<RectTransform>();
+            RawImage img = go.AddComponent<RawImage>();
+            goRectTransform.sizeDelta = new Vector2(width, height);
+            img.texture = PsdImporter.CreateTexture2D(imgLayer);
+
+            UINode node = new UINode();
+            node.rect = imgLayer.Rect;
+            node.go = go;
+
+            return node;
+        }
+
     }
 }
