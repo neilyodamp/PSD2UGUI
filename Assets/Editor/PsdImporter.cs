@@ -188,7 +188,7 @@ namespace PsdLayoutTool
             }
 
             //step1:刷新按钮SpriteState，删除按钮状态Image
-            UpdateBtnsSpriteState();
+            //UpdateBtnsSpriteState();
 
             //step2:最后删除多余的图片aaa(1),aaa(1)_highlight这种。并调整引用
             DeleteExtraImages();
@@ -526,7 +526,7 @@ namespace PsdLayoutTool
             GroupClass groupClass = PsdControl.CheckGroupClass(layer);
             UINode oldNode = _currNode;
             UINode node = null;
-            if (groupClass == GroupClass.Image)
+            if(groupClass == GroupClass.Image)
             {
                 node = PsdControl.CreateImage(layer);
             }
@@ -542,13 +542,17 @@ namespace PsdLayoutTool
             {
                 node = PsdControl.CreateTexture(layer);
             }
+            else if(groupClass == GroupClass.Button)
+            {
+                node = PsdControl.CreateUIButton(layer);
+            }
             else if(groupClass == GroupClass.Empty)
             {
                 return;
             }
             else
             {
-                return; 
+                return;
             }
             //添加了node
             if (node != null)

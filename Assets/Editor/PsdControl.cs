@@ -238,6 +238,35 @@ namespace PsdLayoutTool
             return node;
         }
 
+        public static UINode CreateUIButton(Layer layer)
+        {
+            Layer imgLayer = layer;
+            foreach (var child in layer.Children)
+            {
+                if (!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
+                {
+                    imgLayer = child;
+                    break;
+                }
+            }
+            layer.Children.Remove(imgLayer);
+            float width = imgLayer.Rect.width / PsdImporter.PixelsToUnits;
+            float height = imgLayer.Rect.height / PsdImporter.PixelsToUnits;
+
+            GameObject go = new GameObject(layer.Name);
+            RectTransform goRectTransform = go.AddComponent<RectTransform>();
+            Image img = go.AddComponent<Image>();
+            goRectTransform.sizeDelta = new Vector2(width, height);
+
+            img.sprite = PsdImporter.CreateSprite(imgLayer);
+            go.AddComponent<Button>();
+            UINode node = new UINode();
+            node.rect = imgLayer.Rect;
+            node.go = go;
+
+            return node;
+        }
+
         public static UINode CreateRectTransform(Layer layer)
         {
             GameObject go = new GameObject(layer.Name);
