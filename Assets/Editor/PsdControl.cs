@@ -1,6 +1,4 @@
-﻿
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -45,6 +43,8 @@ namespace PsdLayoutTool
         public const string RIGHT2LEFT = "@R2L";
         public const string BUTTOM2TOP = "@B2T";
         public const string TOP2BUTTOM = "@T2B";
+
+        public const string SIZE = "@size";
 
         public static GroupClass CheckGroupClass(Layer layer)
         {
@@ -94,17 +94,104 @@ namespace PsdLayoutTool
 
             return GroupClass.Empty;
         }
+
+        public static UINode CreateScrollRect(Layer layer)
+        {
+            bool horizontal = false;
+            bool vertical = true;
+
+            if (layer.Name.Contains(RIGHT2LEFT) || layer.Name.Contains(LEFT2RIGHT))
+            {
+                horizontal = true;
+            }
+            if (layer.Name.Contains(TOP2BUTTOM) || layer.Name.Contains(BUTTOM2TOP))
+            {
+                vertical = true;
+            }
+
+            Layer sizeLayer = null;
+
+            foreach (var child in layer.Children)
+            {
+                if (!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
+                {
+                    
+                    if (child.Name.ContainsIgnoreCase("@size"))
+                    {
+                        sizeLayer = child;
+                    }
+                }
+            }
+            if (sizeLayer == null)
+            {
+                Debug.LogError("Scroll Rect can't find @size");
+                return null;
+            }
+
+            GameObject scrollRectGo = new GameObject(layer.Name);
+            RectTransform rectTransform = scrollRectGo.AddComponent<RectTransform>();
+            scrollRectGo.AddComponent<ScrollRect>();
+
+            float width = sizeLayer.Rect.width / PsdImporter.PixelsToUnits;
+            float height = sizeLayer.Rect.height / PsdImporter.PixelsToUnits;
+
+            rectTransform.sizeDelta = new Vector2(width, height);
+
+            GameObject viewPortGo = new GameObject("Viewport");
+            RectTransform viewPortTransform = viewPortGo.AddComponent<RectTransform>();
+            viewPortGo.AddComponent<UnityEngine.UI.Mask>();
+            Image maskImage = viewPortGo.AddComponent<Image>();
+            maskImage.color = new Color(1, 1, 1, 0.01f);
+            viewPortTransform.sizeDelta = new Vector2(width,height);
+            
+            GameObject contentGo = new GameObject("Content");
+            RectTransform contentTransform = contentGo.AddComponent<RectTransform>();
+            contentTransform.sizeDelta = new Vector2(width, height);
+
+            viewPortTransform.anchorMax = new Vector2(1, 1);
+            viewPortTransform.anchorMin = new Vector2(0, 0);
+
+            viewPortTransform.pivot = new Vector2(0,1);
+            contentTransform.pivot = new Vector2(0,1);
+
+            Debug.Log("========="+sizeLayer.Rect);
+            UINode scrollNode = new UINode();
+            scrollNode.rect = sizeLayer.Rect;
+            scrollNode.go = scrollRectGo;
+
+            UINode viewportNode = new UINode();
+            viewportNode.rect = sizeLayer.Rect;
+            viewportNode.go = viewPortGo;
+            viewportNode.pivot = viewPortTransform.pivot;
+
+            UINode contentNode = new UINode();
+            contentNode.rect = sizeLayer.Rect;
+            contentNode.go = contentGo;
+            contentNode.pivot = contentTransform.pivot;
+
+            scrollNode.children.Add(viewportNode);
+            viewportNode.children.Add(contentNode);
+
+            layer.Children.Remove(sizeLayer);
+
+            PsdImporter.ExportTree(layer.Children, contentNode);
+
+            layer.Children.Clear();
+
+            return  scrollNode;
+        }
+
         public static UINode CreateProgress(Layer layer)
         {
             Direction direction = Direction.LeftToRight;
-            if(layer.Name.Contains(RIGHT2LEFT))
+            if(layer.Name.ContainsIgnoreCase(RIGHT2LEFT))
             {
                 direction = Direction.RightToLeft;
-            }else if(layer.Name.Contains(TOP2BUTTOM))
+            }else if(layer.Name.ContainsIgnoreCase(TOP2BUTTOM))
             {
                 direction = Direction.TopToButtom;
             }
-            else if(layer.Name.Contains(BUTTOM2TOP))
+            else if(layer.Name.ContainsIgnoreCase(BUTTOM2TOP))
             {
                 direction = Direction.ButtomToTop;
             }
@@ -116,11 +203,11 @@ namespace PsdLayoutTool
             {
                 if(!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
                 {
-                    if(child.Name.Contains("@fg"))
+                    if(child.Name.ContainsIgnoreCase("@fg"))
                     {
                         fgLayer = child;       
                     }
-                    if (child.Name.Contains("@bg"))
+                    if (child.Name.ContainsIgnoreCase("@bg"))
                     {
                         bgLayer = child;
                     }

@@ -46,7 +46,6 @@ namespace PsdLayoutTool
 
         public static void CreateUIHierarchy(UINode root)
         {
-
             for(int childIndex = 0;childIndex < root.children.Count;childIndex++)
             {
                 root.children[childIndex].go.transform.SetParent(root.go.transform);
@@ -108,18 +107,18 @@ namespace PsdLayoutTool
             if (rectTransform.anchorMax.x == rectTransform.anchorMin.x && 
                 rectTransform.anchorMax.y == rectTransform.anchorMin.y)
             {
-                root.go.transform.position = new Vector3(x + (rect.width / 2), y - (rect.height / 2), 0);
-
+                root.go.transform.position = new Vector3(x + (rect.width / 2) - (0.5f - root.pivot.x) *rect.width
+                    , y - (rect.height / 2) - (0.5f - root.pivot.y) * rect.height, 0);
                 rectTransform.sizeDelta = new Vector2(width, height);
             }
-                
 
-            
-
-            foreach(var node in root.children)
+            foreach (var node in root.children)
             {
                 UpdateAllUINodeRectTransform(node);
             }
         }
+
+        
+        
     }
 }

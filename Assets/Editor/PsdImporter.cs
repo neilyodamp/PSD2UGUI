@@ -25,8 +25,6 @@ namespace PsdLayoutTool
 
         private const string TEST_FONT_NAME = "";
         private const string PUBLIC_IMG_PATH = @"\public_images";
-        private const string SCROLL = "@ScrollView";
-        private const string SCROLL_SIZE = "@Size";
 
         private static string _currentPath;
         private static string _texturePath;
@@ -50,7 +48,7 @@ namespace PsdLayoutTool
         private static Dictionary<string, Sprite> _imageDic;
 
         private static UINode _rootNode;
-        private static UINode _currNode;
+        public static UINode _currNode;
 
         public static Vector3 GetCanvasPosition()
         {
@@ -181,7 +179,7 @@ namespace PsdLayoutTool
 
             List<Layer> tree = BuildLayerTree(psd.Layers);
 
-            ExportTree(tree);
+            ExportTree(tree,_currNode);
             PsdUtils.CreateUIHierarchy(_rootNode);
             PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
             if (_createPrefab)
@@ -492,42 +490,41 @@ namespace PsdLayoutTool
             return fullPath.Replace(PsdUtils.GetFullProjectPath(), string.Empty);
         }
 
-        private static void ExportTree(List<Layer> tree)
+        public static void ExportTree(List<Layer> tree,UINode parentNode)
         {
             for (int i = tree.Count - 1; i >= 0; i--)
             {
-                ExportTreeNode(tree[i]);
+                ExportTreeNode(tree[i] , parentNode);
             }
         }
-        private static void ExportTreeNode(Layer layer)
+        private static void ExportTreeNode(Layer layer,UINode parentNode)
         {
             UpdateLayerName(layer, MakeNameSafe(layer.Name));
             if (PsdUtils.IsGroupLayer(layer))
             {
-                ExportGroup(layer);
+                ExportGroup(layer,parentNode);
             }
             else
             {
-                ExportLayer(layer);
+                ExportLayer(layer,parentNode);
             }
         }
         //图像和text
-        private static void ExportLayer(Layer layer) // 
+        private static void ExportLayer(Layer layer,UINode parentNode) // 
         {
             if(!layer.IsTextLayer)
             {
-
+               
             }
             else
             {
                 UINode node = PsdControl.CreateUIText(layer);
-                _currNode.children.Add(node);
+                parentNode.children.Add(node);
             }
         }
-        private static void ExportGroup(Layer layer)
+        private static void ExportGroup(Layer layer,UINode parentNode)
         {
             GroupClass groupClass = PsdControl.CheckGroupClass(layer);
-            UINode oldNode = _currNode;
             UINode node = null;
             if(groupClass == GroupClass.Image)
             {
@@ -549,6 +546,10 @@ namespace PsdLayoutTool
             {
                 node = PsdControl.CreateUIButton(layer);
             }
+            else if(groupClass == GroupClass.ScrollRect)
+            {
+                node = PsdControl.CreateScrollRect(layer);
+            }
             else if(groupClass == GroupClass.Empty)
             {
                 return;
@@ -560,23 +561,17 @@ namespace PsdLayoutTool
             //添加了node
             if (node != null)
             {
-                _currNode.children.Add(node);
-                _currNode = node;
-                ExportTree(layer.Children);
-                _currNode = oldNode;
+                parentNode.children.Add(node);
+                ExportTree(layer.Children,node);
             }
         }
-
-
-
-
 
         private static void CreateDic(string path)
         {
             Directory.CreateDirectory(path);
         }
 
-        private static bool ContainsIgnoreCase(this string source, string toCheck)
+        public static bool ContainsIgnoreCase(this string source, string toCheck)
         {
             return source.IndexOf(toCheck, StringComparison.OrdinalIgnoreCase) >= 0;
         }
@@ -727,6 +722,7 @@ namespace PsdLayoutTool
                 if(textureImporter != null)
                 {
                     textureImporter.textureType = TextureImporterType.GUI;
+                    
                     textureImporter.mipmapEnabled = false;
                     //textureImporter.spriteImportMode = SpriteImportMode.Single;
                     textureImporter.maxTextureSize = 2048;
@@ -925,9 +921,12 @@ namespace PsdLayoutTool
         public GameObject go;
         public Rect rect;
         public List<UINode> children;
+        public Vector2 pivot;
+
 
         public UINode()
         {
+            pivot = new Vector2(0.5f,0.5f);
             children = new List<UINode>();
         }
     }
