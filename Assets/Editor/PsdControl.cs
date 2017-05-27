@@ -1,6 +1,4 @@
-﻿
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -45,6 +43,8 @@ namespace PsdLayoutTool
         public const string RIGHT2LEFT = "@R2L";
         public const string BUTTOM2TOP = "@B2T";
         public const string TOP2BUTTOM = "@T2B";
+
+        public const string SIZE = "@size";
 
         public static GroupClass CheckGroupClass(Layer layer)
         {
@@ -94,17 +94,113 @@ namespace PsdLayoutTool
 
             return GroupClass.Empty;
         }
+
+        public static UINode CreateScrollRect(Layer layer)
+        {
+            bool horizontal = false;
+            bool vertical = true;
+
+            if (layer.Name.Contains(RIGHT2LEFT) || layer.Name.Contains(LEFT2RIGHT))
+            {
+                horizontal = true;
+            }
+            if (layer.Name.Contains(TOP2BUTTOM) || layer.Name.Contains(BUTTOM2TOP))
+            {
+                vertical = true;
+            }
+
+            Layer sizeLayer = null;
+
+            foreach (var child in layer.Children)
+            {
+                if (!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
+                {
+                    
+                    if (child.Name.ContainsIgnoreCase("@size"))
+                    {
+                        sizeLayer = child;
+                    }
+                }
+            }
+            if (sizeLayer == null)
+            {
+                Debug.LogError("Scroll Rect can't find @size");
+                return null;
+            }
+
+            GameObject scrollRectGo = new GameObject(layer.Name);
+            RectTransform rectTransform = scrollRectGo.AddComponent<RectTransform>();
+            ScrollRect scrollRect = scrollRectGo.AddComponent<ScrollRect>();
+
+            float width = sizeLayer.Rect.width;
+            float height = sizeLayer.Rect.height;
+
+            rectTransform.sizeDelta = new Vector2(width, height);
+
+            GameObject viewPortGo = new GameObject("Viewport");
+            RectTransform viewPortTransform = viewPortGo.AddComponent<RectTransform>();
+            viewPortGo.AddComponent<UnityEngine.UI.Mask>();
+            Image maskImage = viewPortGo.AddComponent<Image>();
+            maskImage.color = new Color(1, 1, 1, 0.01f);
+            viewPortTransform.sizeDelta = new Vector2(width,height);
+            
+            GameObject contentGo = new GameObject("Content");
+            RectTransform contentTransform = contentGo.AddComponent<RectTransform>();
+            contentTransform.sizeDelta = new Vector2(width, height);
+
+            scrollRect.viewport = viewPortTransform;
+            scrollRect.content = contentTransform;
+
+            scrollRect.vertical = vertical;
+            scrollRect.horizontal = horizontal;
+
+            viewPortTransform.anchorMax = new Vector2(1, 1);
+            viewPortTransform.anchorMin = new Vector2(0, 0);
+            viewPortTransform.pivot = new Vector2(0,1);
+
+            contentTransform.anchorMax = new Vector2(0, 1);
+            contentTransform.anchorMin = new Vector2(0, 1);
+            contentTransform.pivot = new Vector2(0,1);
+
+
+            UINode scrollNode = new UINode();
+            scrollNode.rect = sizeLayer.Rect;
+            scrollNode.Go = scrollRectGo;
+
+            UINode viewportNode = new UINode();
+            viewportNode.rect = sizeLayer.Rect;
+            viewportNode.Go = viewPortGo;
+            viewportNode.pivot = viewPortTransform.pivot;
+            
+
+            UINode contentNode = new UINode();
+            contentNode.rect = sizeLayer.Rect;
+            contentNode.Go = contentGo;
+            contentNode.pivot = contentTransform.pivot;
+
+            scrollNode.children.Add(viewportNode);
+            viewportNode.children.Add(contentNode);
+
+            layer.Children.Remove(sizeLayer);
+
+            PsdImporter.ExportTree(layer.Children, contentNode);
+
+            layer.Children.Clear();
+
+            return  scrollNode;
+        }
+
         public static UINode CreateProgress(Layer layer)
         {
             Direction direction = Direction.LeftToRight;
-            if(layer.Name.Contains(RIGHT2LEFT))
+            if(layer.Name.ContainsIgnoreCase(RIGHT2LEFT))
             {
                 direction = Direction.RightToLeft;
-            }else if(layer.Name.Contains(TOP2BUTTOM))
+            }else if(layer.Name.ContainsIgnoreCase(TOP2BUTTOM))
             {
                 direction = Direction.TopToButtom;
             }
-            else if(layer.Name.Contains(BUTTOM2TOP))
+            else if(layer.Name.ContainsIgnoreCase(BUTTOM2TOP))
             {
                 direction = Direction.ButtomToTop;
             }
@@ -116,11 +212,11 @@ namespace PsdLayoutTool
             {
                 if(!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
                 {
-                    if(child.Name.Contains("@fg"))
+                    if(child.Name.ContainsIgnoreCase("@fg"))
                     {
                         fgLayer = child;       
                     }
-                    if (child.Name.Contains("@bg"))
+                    if (child.Name.ContainsIgnoreCase("@bg"))
                     {
                         bgLayer = child;
                     }
@@ -136,8 +232,8 @@ namespace PsdLayoutTool
             //GameObject go
             GameObject progressGo = new GameObject(layer.Name);
 
-            float width = fgLayer.Rect.width / PsdImporter.PixelsToUnits;
-            float height = fgLayer.Rect.height / PsdImporter.PixelsToUnits;
+            float width = fgLayer.Rect.width;
+            float height = fgLayer.Rect.height;
             RectTransform rectTransform = progressGo.AddComponent<RectTransform>();
 
             rectTransform.sizeDelta = new Vector2(width,height);
@@ -160,8 +256,8 @@ namespace PsdLayoutTool
             RectTransform bgRectTransform = null;
             if (bgLayer != null)
             {
-                float bgWidth = bgLayer.Rect.width / PsdImporter.PixelsToUnits;
-                float bgHeight = bgLayer.Rect.height / PsdImporter.PixelsToUnits;
+                float bgWidth = bgLayer.Rect.width;
+                float bgHeight = bgLayer.Rect.height;
 
                 bgGo = new GameObject("Background");
                 bgRectTransform = bgGo.AddComponent<RectTransform>();
@@ -201,15 +297,14 @@ namespace PsdLayoutTool
 
             UINode node = new UINode();
             node.rect = fgLayer.Rect;
-            node.go = progressGo;
+            node.Go = progressGo;
             return node;
 
         }
         public static UINode CreateImage(Layer layer)
         {
-
             Layer imgLayer = layer;
-            foreach(var child in layer.Children)
+            foreach (var child in layer.Children)
             {
                 if (!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
                 {
@@ -217,9 +312,10 @@ namespace PsdLayoutTool
                     break;
                 }
             }
+
             layer.Children.Remove(imgLayer);
-            float width = imgLayer.Rect.width / PsdImporter.PixelsToUnits;
-            float height = imgLayer.Rect.height / PsdImporter.PixelsToUnits;
+            float width = imgLayer.Rect.width ;
+            float height = imgLayer.Rect.height;
 
             GameObject go = new GameObject(layer.Name);
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
@@ -228,7 +324,7 @@ namespace PsdLayoutTool
 
             if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
             {
-                img.sprite = PsdImporter.CreateSprite(imgLayer);           
+                img.sprite = PsdImporter.CreateSprite(imgLayer);
             }
             else
             {
@@ -236,10 +332,15 @@ namespace PsdLayoutTool
                 string path = PsdImporter.GetFilePath(imgLayer, out writePath);
                 PsdImporter.AddScaleImg(path, img);
             }
+            
+            if(imgLayer.Is9Slice)
+            {
+                img.type = Image.Type.Sliced;
+            }
 
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
-            node.go = go;
+            node.Go = go;
 
             return node;
         }
@@ -256,8 +357,8 @@ namespace PsdLayoutTool
                 }
             }
             layer.Children.Remove(imgLayer);
-            float width = imgLayer.Rect.width / PsdImporter.PixelsToUnits;
-            float height = imgLayer.Rect.height / PsdImporter.PixelsToUnits;
+            float width = imgLayer.Rect.width ;
+            float height = imgLayer.Rect.height;
 
             GameObject go = new GameObject(layer.Name);
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
@@ -268,7 +369,7 @@ namespace PsdLayoutTool
             go.AddComponent<Button>();
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
-            node.go = go;
+            node.Go = go;
 
             return node;
         }
@@ -280,7 +381,7 @@ namespace PsdLayoutTool
 
             UINode node = new UINode();
             node.rect = layer.Rect;
-            node.go = go;
+            node.Go = go;
 
             return node;
         }
@@ -300,9 +401,9 @@ namespace PsdLayoutTool
 
             textUI.text = layer.Text;
             textUI.font = font;
-            textUI.horizontalOverflow = HorizontalWrapMode.Overflow;//yanruTODO修改
+            textUI.horizontalOverflow = HorizontalWrapMode.Overflow;
             textUI.verticalOverflow = VerticalWrapMode.Overflow;
-            textUI.raycastTarget = false;//can not  click text by yanru 2016-06-16 19:27:41
+            textUI.raycastTarget = false;
 
             //描边信息
             if (layer.TextOutlineColor.a != 0f)
@@ -337,7 +438,7 @@ namespace PsdLayoutTool
 
             UINode node = new UINode();
             node.rect = layer.Rect;
-            node.go = gameObject;
+            node.Go = gameObject;
             return node;
         }
 
@@ -354,8 +455,8 @@ namespace PsdLayoutTool
                 }
             }
             layer.Children.Remove(imgLayer);
-            float width = imgLayer.Rect.width / PsdImporter.PixelsToUnits;
-            float height = imgLayer.Rect.height / PsdImporter.PixelsToUnits;
+            float width = imgLayer.Rect.width;
+            float height = imgLayer.Rect.height;
 
             GameObject go = new GameObject(layer.Name);
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
@@ -365,7 +466,7 @@ namespace PsdLayoutTool
 
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
-            node.go = go;
+            node.Go = go;
 
             return node;
         }

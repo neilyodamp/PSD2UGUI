@@ -37,7 +37,7 @@ namespace PsdLayoutTool
                 _guiStyle.normal.textColor = Color.white;
             }
 
-
+            /*
             TextureImporter import = (TextureImporter)target;
             if (import.textureType != TextureImporterType.Sprite)
             {
@@ -48,6 +48,7 @@ namespace PsdLayoutTool
                 //import.textureFormat = TextureImporterFormat.AutomaticCompressed;
                 import.textureCompression = TextureImporterCompression.Compressed;
             }
+            */
         }
         public override void OnInspectorGUI()
         {

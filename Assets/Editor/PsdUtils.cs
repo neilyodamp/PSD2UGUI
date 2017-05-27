@@ -29,9 +29,6 @@ namespace PsdLayoutTool
             return false;
         }
 
-
-
-
         #region Test Tools
         public static void DisplayUINodeTree(UINode root)
         {
@@ -40,16 +37,13 @@ namespace PsdLayoutTool
                 DisplayUINodeTree(node);
             }
         }
-
-
         #endregion
 
         public static void CreateUIHierarchy(UINode root)
         {
-
             for(int childIndex = 0;childIndex < root.children.Count;childIndex++)
             {
-                root.children[childIndex].go.transform.SetParent(root.go.transform);
+                root.children[childIndex].Go.transform.SetParent(root.Go.transform);
                 CreateUIHierarchy(root.children[childIndex]);
             }
         }
@@ -88,35 +82,50 @@ namespace PsdLayoutTool
         public static void UpdateAllUINodeRectTransform(UINode root)
         {
 
-            Rect rect = GetUINodeRectTransform(root);
-            float x = rect.x;
-            float y = rect.y;
-                        
-            y = (PsdImporter.ScreenResolution.y) - y;
+            if(PsdImporter.CanvasObj == null)
+            {
+                Debug.LogError("No Canvas");
+                return;
+            }
 
-            x = x - ((PsdImporter.ScreenResolution.x / 2));
-            y = y - ((PsdImporter.ScreenResolution.y / 2));
+            RectTransform canvasRectTransform = PsdImporter.CanvasObj.transform as RectTransform;
+            Vector3 canvasWorldPosition = canvasRectTransform.position;
+            Rect rect = GetUINodeRectTransform(root);
+            Vector3 nodeWorldPosition = RectToPostion(rect, PsdImporter.ScreenResolution.x, PsdImporter.ScreenResolution.y);                          
 
             //宽 和 高
-            float width = rect.width / PsdImporter.PixelsToUnits;
-            float height = rect.height / PsdImporter.PixelsToUnits;
+            float width = rect.width;
+            float height = rect.height;
 
             Vector3 canvasPosition = PsdImporter.GetCanvasPosition();
 
-            RectTransform rectTransform = root.go.transform as RectTransform;
+            RectTransform rectTransform = root.Go.transform as RectTransform;
 
             if (rectTransform.anchorMax.x == rectTransform.anchorMin.x && 
                 rectTransform.anchorMax.y == rectTransform.anchorMin.y)
             {
-                root.go.transform.position = new Vector3(x + (rect.width / 2), y - (rect.height / 2), 0);
-
                 rectTransform.sizeDelta = new Vector2(width, height);
             }
 
-            foreach(var node in root.children)
+            //root.Go.transform.position = new Vector3(x + (rect.width) - (0.5f - root.pivot.x) * rect.width
+            //        , y - (0.5f - root.pivot.y) * rect.height, 0);
+
+            root.Go.transform.position = new Vector3(nodeWorldPosition.x + canvasWorldPosition.x - (0.5f - root.pivot.x) * rect.width,
+                nodeWorldPosition.y+canvasWorldPosition.y - (0.5f - root.pivot.y) * rect.height, 0);
+
+            foreach (var node in root.children)
             {
                 UpdateAllUINodeRectTransform(node);
             }
+
+        }
+
+        public static Vector3 RectToPostion(Rect rect,float width,float height)
+        {
+            float y = height / 2 - rect.y - rect.height/2;
+            float x = rect.x - (width / 2) + rect.width/2;
+
+            return new Vector3(x, y, 0);
         }
 
     }
