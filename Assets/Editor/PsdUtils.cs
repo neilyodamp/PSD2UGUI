@@ -112,14 +112,12 @@ namespace PsdLayoutTool
 
                 rectTransform.sizeDelta = new Vector2(width, height);
             }
-                
-
-            
 
             foreach(var node in root.children)
             {
                 UpdateAllUINodeRectTransform(node);
             }
         }
+
     }
 }

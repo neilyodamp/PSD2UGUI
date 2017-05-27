@@ -208,7 +208,6 @@ namespace PsdLayoutTool
         public static UINode CreateImage(Layer layer)
         {
 
-
             Layer imgLayer = layer;
             foreach(var child in layer.Children)
             {
@@ -227,7 +226,16 @@ namespace PsdLayoutTool
             Image img = go.AddComponent<Image>();
             goRectTransform.sizeDelta = new Vector2(width,height);
 
-            img.sprite = PsdImporter.CreateSprite(imgLayer);
+            if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
+            {
+                img.sprite = PsdImporter.CreateSprite(imgLayer);           
+            }
+            else
+            {
+                string writePath;
+                string path = PsdImporter.GetFilePath(imgLayer, out writePath);
+                PsdImporter.AddScaleImg(path, img);
+            }
 
             UINode node = new UINode();
             node.rect = imgLayer.Rect;

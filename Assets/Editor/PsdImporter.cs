@@ -17,6 +17,7 @@ namespace PsdLayoutTool
         public const string BTN_TAIL_HIGH = "_highlight";
         public const string BTN_TAIL_DIS = "_disable";
         public const string PUBLIC_IMG_HEAD = "public_";
+        public const string IMG_REF = "@";
 
         public const string PSD_TAIL = ".psd";
         public const string IMG_TAIL = ".png";
@@ -27,6 +28,7 @@ namespace PsdLayoutTool
         private const string PUBLIC_IMG_PATH = @"\public_images";
         private const string SCROLL = "@ScrollView";
         private const string SCROLL_SIZE = "@Size";
+        
 
         private static string _currentPath;
         private static string _texturePath;
@@ -48,6 +50,8 @@ namespace PsdLayoutTool
         private static bool _fullScreenUI = true;
         private static Dictionary<GameObject, Vector3> _positionDic;
         private static Dictionary<string, Sprite> _imageDic;
+        //放大缩小的IMG
+        private static Dictionary<string, List<Image>> _scaleImgDic;
 
         private static UINode _rootNode;
         private static UINode _currNode;
@@ -118,8 +122,21 @@ namespace PsdLayoutTool
 
         }
 
+        public static void AddScaleImg(string path, Image img)
+        {
+            if (!_scaleImgDic.ContainsKey(path))
+            {
+                List<Image> imgs = new List<Image>();
+                imgs.Add(img);
+                _scaleImgDic[path] = imgs;
+            }
+            _scaleImgDic[path].Add(img);
+        }
+
         private static void Import(string asset)
         {
+            _scaleImgDic = new Dictionary<string, List<Image>>();
+
             _imageDic = new Dictionary<string, Sprite>();
 
             _btnNameList = new List<string>();
@@ -184,6 +201,7 @@ namespace PsdLayoutTool
             ExportTree(tree);
             PsdUtils.CreateUIHierarchy(_rootNode);
             PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
+
             if (_createPrefab)
             {
                 UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab(asset.Replace(".psd", ".prefab"));
@@ -192,6 +210,7 @@ namespace PsdLayoutTool
 
             //step1:刷新按钮SpriteState，删除按钮状态Image
             //UpdateBtnsSpriteState();
+            UpdateScaleImgSprite();
 
             //step2:最后删除多余的图片aaa(1),aaa(1)_highlight这种。并调整引用
             DeleteExtraImages();
@@ -648,7 +667,23 @@ namespace PsdLayoutTool
             return texture;
         }
 
-        private static string GetFilePath(Layer layer, out string writePath)
+        private static string GetTextureFilePath(Layer layer, out string writePath)
+        {
+            string file = string.Empty;
+            writePath = _texturePath;
+            file = Path.Combine(writePath, layer.Name + ".png");
+            return file;
+        }
+
+        private static string TrimSpecialHead(string str)
+        {
+            if (str.IndexOf(BTN_HEAD) == 0)
+                return str.Replace(BTN_HEAD, "");
+
+            return str;
+        }
+
+        public static string GetFilePath(Layer layer, out string writePath)
         {
             string file = string.Empty;
             writePath = _currentPath;
@@ -666,22 +701,6 @@ namespace PsdLayoutTool
 
             file = Path.Combine(writePath, layerName + ".png");
             return file;
-        }
-
-        private static string GetTextureFilePath(Layer layer, out string writePath)
-        {
-            string file = string.Empty;
-            writePath = _texturePath;
-            file = Path.Combine(writePath, layer.Name + ".png");
-            return file;
-        }
-
-        private static string TrimSpecialHead(string str)
-        {
-            if (str.IndexOf(BTN_HEAD) == 0)
-                return str.Replace(BTN_HEAD, "");
-
-            return str;
         }
 
         public static Sprite CreateSprite(Layer layer)
@@ -890,7 +909,19 @@ namespace PsdLayoutTool
             transform.sizeDelta = new Vector2(width, height);
         }
 
-        
+        private static void UpdateScaleImgSprite()
+        {
+            foreach(KeyValuePair<string, List<Image>> kvp in _scaleImgDic)
+            {
+                string path = kvp.Key.Replace(PsdUtils.GetFullProjectPath(), string.Empty);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                Sprite sprite = (Sprite)AssetDatabase.LoadAssetAtPath(path, typeof(Sprite));
+                foreach(var img in kvp.Value)
+                {             
+                    img.sprite = sprite;
+                }
+            }
+        }  
 
         public static Font GetFontInfo()
         {
