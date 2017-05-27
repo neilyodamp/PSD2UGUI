@@ -40,12 +40,10 @@ namespace PsdLayoutTool
         private static string _textFont = "";
         private static bool _useRealImageSize = false;
         private static int _nullImageIndex = 0;
-        private static bool _fullScreenUI = true;
         private static Dictionary<GameObject, Vector3> _positionDic;
         private static Dictionary<string, Sprite> _imageDic;
 
         private static UINode _rootNode;
-        public static UINode _currNode;
 
         public static Vector3 GetCanvasPosition()
         {
@@ -84,13 +82,6 @@ namespace PsdLayoutTool
                 _textFont = value;
             }
         }
-
-        public static bool fullScreenUI
-        {
-            get { return _fullScreenUI; }
-            set { _fullScreenUI = value; }
-        }
-
         static PsdImporter()
         {
             _textFont = TEST_FONT_NAME;
@@ -161,20 +152,22 @@ namespace PsdLayoutTool
                 _rootNode.Go = _rootPsdGameObject;
                 
                 RectTransform rectRoot = _rootPsdGameObject.GetComponent<RectTransform>();
-                rectRoot.anchorMin = new Vector2(0.5f, 0.5f);
-                rectRoot.anchorMax = new Vector2(0.5f, 0.5f);
+                
+                rectRoot.anchorMin = new Vector2(0, 0);
+                rectRoot.anchorMax = new Vector2(1, 1);
                 rectRoot.offsetMin = Vector2.zero;
                 rectRoot.offsetMax = Vector2.zero;
+
+                _rootNode.rect = new Rect(0, 0, ScreenResolution.x, ScreenResolution.y);
 
                 Vector3 rootPos = Vector3.zero;
                 _rootPsdGameObject.transform.position = Vector3.zero;
                 _currentGroupGameObject = _rootPsdGameObject;
-                _currNode = _rootNode;
             }
 
             List<Layer> tree = BuildLayerTree(psd.Layers);
 
-            ExportTree(tree,_currNode);
+            ExportTree(tree, _rootNode);
             PsdUtils.CreateUIHierarchy(_rootNode);
             PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
             
@@ -261,7 +254,6 @@ namespace PsdLayoutTool
                 }
             }
 
-            // if there are any dangling layers, add them to the tree
             if (tree.Count == 0 && currentGroupLayer != null && currentGroupLayer.Children.Count > 0)
             {
                 tree.Add(currentGroupLayer);

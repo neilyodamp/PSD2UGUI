@@ -29,9 +29,22 @@ namespace PsdLayoutTool
         TopToButtom = 4
     }
 
+    public enum Anchor
+    {
+        LeftTop,
+        LeftMiddle,
+        LeftButtom,
+        CenterTop,
+        CenterMiddle,
+        CenterButtom,
+        RightTop,
+        RightMiddle,
+        RightButtom,
+    }
 
     public class PsdControl
     {
+        
         public const string BTN = "btn_";
         public const string IMAGE = "img_";
         public const string TEXTURE = "tex_";
@@ -45,6 +58,16 @@ namespace PsdLayoutTool
         public const string TOP2BUTTOM = "@T2B";
 
         public const string SIZE = "@size";
+
+        public const string ANCHOR_LEFTTOP = "@lt";
+        public const string ANCHOR_LEFTMIDDLE = "@lm";
+        public const string ANCHOR_LEFTBUTTOM = "@lb";
+        public const string ANCHOR_CENTERTOP = "@ct";
+        public const string ANCHOR_CENTERMIDDLE = "@cm";
+        public const string ANCHOR_CENTERBUTTOM = "@cb";
+        public const string ANCHOR_RIGHTTOP = "@rt";
+        public const string ANCHOR_RIGHTMIDDLE = "@rm";
+        public const string ANCHOR_RIGHTBUTTOM = "@rb";
 
         public static GroupClass CheckGroupClass(Layer layer)
         {
@@ -183,6 +206,8 @@ namespace PsdLayoutTool
 
             layer.Children.Remove(sizeLayer);
 
+            SetAnchor(rectTransform, layer.Name);
+
             PsdImporter.ExportTree(layer.Children, contentNode);
 
             layer.Children.Clear();
@@ -295,6 +320,8 @@ namespace PsdLayoutTool
 
             layer.Children.Remove(fgLayer);
 
+            SetAnchor(rectTransform, layer.Name);
+
             UINode node = new UINode();
             node.rect = fgLayer.Rect;
             node.Go = progressGo;
@@ -328,7 +355,7 @@ namespace PsdLayoutTool
             {
                 img.type = Image.Type.Sliced;
             }
-
+            SetAnchor(goRectTransform, layer.Name);
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
@@ -358,6 +385,9 @@ namespace PsdLayoutTool
 
             img.sprite = PsdImporter.CreateSprite(imgLayer);
             go.AddComponent<Button>();
+
+            SetAnchor(goRectTransform, layer.Name);
+
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
@@ -374,6 +404,8 @@ namespace PsdLayoutTool
             node.rect = layer.Rect;
             node.Go = go;
 
+            SetAnchor(goRectTransform, layer.Name);
+
             return node;
         }
 
@@ -388,6 +420,12 @@ namespace PsdLayoutTool
             if (textUI == null)
             {
                 textUI = gameObject.AddComponent<Text>();
+            }
+
+            RectTransform rectTransform = gameObject.GetComponent<RectTransform>();
+            if(rectTransform == null)
+            {
+                rectTransform = gameObject.AddComponent<RectTransform>();
             }
 
             textUI.text = layer.Text;
@@ -427,6 +465,8 @@ namespace PsdLayoutTool
                     break;
             }
 
+            SetAnchor(rectTransform, layer.Name);
+
             UINode node = new UINode();
             node.rect = layer.Rect;
             node.Go = gameObject;
@@ -455,11 +495,25 @@ namespace PsdLayoutTool
             goRectTransform.sizeDelta = new Vector2(width, height);
             img.texture = PsdImporter.CreateTexture2D(imgLayer);
 
+            SetAnchor(goRectTransform, layer.Name);
+
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
 
             return node;
+        }
+
+        public static void SetAnchor(RectTransform rectTransform,string name)
+        {
+            Debug.Log(name);
+            Debug.Log(rectTransform.name);
+            Vector4 anchor = PsdUtils.GetAnchorWithGroupName(name);
+            Debug.Log(anchor);
+
+
+            rectTransform.anchorMin = new Vector2(anchor.x, anchor.y);
+            rectTransform.anchorMax = new Vector2(anchor.z, anchor.w);
         }
 
     }
