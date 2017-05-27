@@ -89,13 +89,9 @@ namespace PsdLayoutTool
             }
 
             RectTransform canvasRectTransform = PsdImporter.CanvasObj.transform as RectTransform;
-
             Vector3 canvasWorldPosition = canvasRectTransform.position;
-
             Rect rect = GetUINodeRectTransform(root);
-
-            Vector3 nodeWorldPosition = RectToPostion(rect, PsdImporter.ScreenResolution.x, PsdImporter.ScreenResolution.y);                
-           
+            Vector3 nodeWorldPosition = RectToPostion(rect, PsdImporter.ScreenResolution.x, PsdImporter.ScreenResolution.y);                          
 
             //宽 和 高
             float width = rect.width;
@@ -113,7 +109,6 @@ namespace PsdLayoutTool
 
             //root.Go.transform.position = new Vector3(x + (rect.width) - (0.5f - root.pivot.x) * rect.width
             //        , y - (0.5f - root.pivot.y) * rect.height, 0);
-
 
             root.Go.transform.position = new Vector3(nodeWorldPosition.x + canvasWorldPosition.x - (0.5f - root.pivot.x) * rect.width,
                 nodeWorldPosition.y+canvasWorldPosition.y - (0.5f - root.pivot.y) * rect.height, 0);
@@ -172,8 +167,20 @@ namespace PsdLayoutTool
             if (name.ContainsIgnoreCase(PsdControl.ANCHOR_RIGHTBUTTOM))
                 anchor = Anchor.RightButtom;
 
-            
+
             return GetAnchor(anchor);
+        }
+        public static string TrimSliceHead(string layerName)
+        {
+            if(layerName.Contains("@"))
+            {
+                int length = layerName.Length - 1;
+                if(layerName.LastIndexOf("@") != -1)
+                    length = layerName.LastIndexOf("@");
+                layerName = layerName.Substring(0, length);
+                return layerName;
+            }
+            return layerName;
         }
 
     }

@@ -14,6 +14,7 @@ namespace PsdLayoutTool
     public static class PsdImporter
     {
         public const string PUBLIC_IMG_HEAD = "public_";
+        public const string IMG_REF = "&";
 
         public const string PSD_TAIL = ".psd";
         public const string IMG_TAIL = ".png";
@@ -22,6 +23,8 @@ namespace PsdLayoutTool
 
         private const string TEST_FONT_NAME = "";
         private const string PUBLIC_IMG_PATH = @"\public_images";
+        private const string SCROLL = "@ScrollView";
+        private const string SCROLL_SIZE = "@Size";
 
         private static string _currentPath;
         private static string _texturePath;
@@ -42,6 +45,8 @@ namespace PsdLayoutTool
         private static int _nullImageIndex = 0;
         private static Dictionary<GameObject, Vector3> _positionDic;
         private static Dictionary<string, Sprite> _imageDic;
+        //放大缩小的IMG
+        private static Dictionary<string, List<Image>> _scaleImgDic;
 
         private static UINode _rootNode;
 
@@ -104,8 +109,21 @@ namespace PsdLayoutTool
 
         }
 
+        public static void AddScaleImg(string path, Image img)
+        {
+            if (!_scaleImgDic.ContainsKey(path))
+            {
+                List<Image> imgs = new List<Image>();
+                imgs.Add(img);
+                _scaleImgDic[path] = imgs;
+            }
+            _scaleImgDic[path].Add(img);
+        }
+
         private static void Import(string asset)
         {
+            _scaleImgDic = new Dictionary<string, List<Image>>();
+
             _imageDic = new Dictionary<string, Sprite>();
 
             _btnNameList = new List<string>();
@@ -170,13 +188,14 @@ namespace PsdLayoutTool
             ExportTree(tree, _rootNode);
             PsdUtils.CreateUIHierarchy(_rootNode);
             PsdUtils.UpdateAllUINodeRectTransform(_rootNode);
-            
+
             if (_createPrefab)
             {
                 UnityEngine.Object prefab = PrefabUtility.CreateEmptyPrefab(asset.Replace(".psd", ".prefab"));
                 PrefabUtility.ReplacePrefab(_rootPsdGameObject, prefab);
             }
 
+            UpdateScaleImgSprite();
             AssetDatabase.Refresh();
         }
 
@@ -417,7 +436,15 @@ namespace PsdLayoutTool
             return texture;
         }
 
-        private static string GetFilePath(Layer layer, out string writePath)
+        private static string GetTextureFilePath(Layer layer, out string writePath)
+        {
+            string file = string.Empty;
+            writePath = _texturePath;
+            file = Path.Combine(writePath, layer.Name + ".png");
+            return file;
+        }
+
+        public static string GetFilePath(Layer layer, out string writePath)
         {
             string file = string.Empty;
             writePath = _currentPath;
@@ -433,15 +460,8 @@ namespace PsdLayoutTool
                 writePath += PUBLIC_IMG_PATH;
             }
 
+            layerName = PsdUtils.TrimSliceHead(layerName);
             file = Path.Combine(writePath, layerName + ".png");
-            return file;
-        }
-
-        private static string GetTextureFilePath(Layer layer, out string writePath)
-        {
-            string file = string.Empty;
-            writePath = _texturePath;
-            file = Path.Combine(writePath, layer.Name + ".png");
             return file;
         }
 
@@ -611,7 +631,27 @@ namespace PsdLayoutTool
             transform.sizeDelta = new Vector2(width, height);
         }
 
-        
+        private static void UpdateScaleImgSprite()
+        {
+            foreach(KeyValuePair<string, List<Image>> kvp in _scaleImgDic)
+            {
+                string path = kvp.Key.Replace(PsdUtils.GetFullProjectPath(), string.Empty);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                Sprite sprite = (Sprite)AssetDatabase.LoadAssetAtPath(path, typeof(Sprite));
+                if (null == sprite)
+                {
+                    Debug.LogWarning(string.Format("缺少引用资源 {0} ", path));
+                }
+                else
+                {
+                    foreach(var img in kvp.Value)
+                    {
+                        img.sprite = sprite;
+                    }
+                }
+                
+            }
+        }  
 
         public static Font GetFontInfo()
         {
