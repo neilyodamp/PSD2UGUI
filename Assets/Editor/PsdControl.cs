@@ -332,9 +332,15 @@ namespace PsdLayoutTool
                 string path = PsdImporter.GetFilePath(imgLayer, out writePath);
                 PsdImporter.AddScaleImg(path, img);
             }
+
+            if (imgLayer.Name.StartsWith("button"))
+            {
+                Debug.Log("");
+            }
             
             if(imgLayer.Is9Slice)
             {
+                //Debug.Log(imgLayer.Name);
                 img.type = Image.Type.Sliced;
             }
 
@@ -366,6 +372,10 @@ namespace PsdLayoutTool
             goRectTransform.sizeDelta = new Vector2(width, height);
 
             img.sprite = PsdImporter.CreateSprite(imgLayer);
+            if(imgLayer.Is9Slice)
+            {
+                img.type = Image.Type.Sliced;
+            }
             go.AddComponent<Button>();
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
