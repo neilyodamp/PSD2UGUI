@@ -128,5 +128,18 @@ namespace PsdLayoutTool
             return new Vector3(x, y, 0);
         }
 
+        public static string TrimSliceHead(string layerName)
+        {
+            if(layerName.Contains("@"))
+            {
+                int length = layerName.Length - 1;
+                if(layerName.LastIndexOf("@") != -1)
+                    length = layerName.LastIndexOf("@");
+                layerName = layerName.Substring(0, length);
+                return layerName;
+            }
+            return layerName;
+        }
+
     }
 }

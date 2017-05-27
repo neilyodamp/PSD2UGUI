@@ -322,12 +322,13 @@ namespace PsdLayoutTool
             Image img = go.AddComponent<Image>();
             goRectTransform.sizeDelta = new Vector2(width,height);
 
-            if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
+            if(!imgLayer.Name.StartsWith(PsdImporter.IMG_REF))
             {
                 img.sprite = PsdImporter.CreateSprite(imgLayer);
             }
             else
             {
+                imgLayer.Name = imgLayer.Name.Replace(PsdImporter.IMG_REF, string.Empty);
                 string writePath;
                 string path = PsdImporter.GetFilePath(imgLayer, out writePath);
                 PsdImporter.AddScaleImg(path, img);

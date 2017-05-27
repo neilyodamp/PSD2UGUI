@@ -14,7 +14,7 @@ namespace PsdLayoutTool
     public static class PsdImporter
     {
         public const string PUBLIC_IMG_HEAD = "public_";
-        public const string IMG_REF = "@";
+        public const string IMG_REF = "&";
 
         public const string PSD_TAIL = ".psd";
         public const string IMG_TAIL = ".png";
@@ -468,6 +468,7 @@ namespace PsdLayoutTool
                 writePath += PUBLIC_IMG_PATH;
             }
 
+            layerName = PsdUtils.TrimSliceHead(layerName);
             file = Path.Combine(writePath, layerName + ".png");
             return file;
         }
@@ -645,10 +646,18 @@ namespace PsdLayoutTool
                 string path = kvp.Key.Replace(PsdUtils.GetFullProjectPath(), string.Empty);
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 Sprite sprite = (Sprite)AssetDatabase.LoadAssetAtPath(path, typeof(Sprite));
-                foreach(var img in kvp.Value)
-                {             
-                    img.sprite = sprite;
+                if (null == sprite)
+                {
+                    Debug.LogWarning(string.Format("缺少引用资源 {0} ", path));
                 }
+                else
+                {
+                    foreach(var img in kvp.Value)
+                    {
+                        img.sprite = sprite;
+                    }
+                }
+                
             }
         }  
 
