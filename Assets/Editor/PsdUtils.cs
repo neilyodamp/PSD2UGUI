@@ -128,6 +128,49 @@ namespace PsdLayoutTool
             return new Vector3(x, y, 0);
         }
 
+        public static Vector4 GetAnchor(Anchor anchor)
+        {
+            switch(anchor)
+            {
+                case Anchor.LeftTop:return new Vector4(0, 1, 0, 1);
+                case Anchor.LeftMiddle: return new Vector4(0, 0.5f, 0, 0.5f);
+                case Anchor.LeftButtom: return new Vector4(0, 0, 0, 0);
+                case Anchor.CenterTop: return new Vector4(0.5f, 1, 0.5f, 1);
+                case Anchor.CenterMiddle: return new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+                case Anchor.CenterButtom: return new Vector4(0.5f, 0, 0.5f, 0);
+                case Anchor.RightTop: return new Vector4(1, 1, 1, 1);
+                case Anchor.RightMiddle: return new Vector4(1, 0.5f, 1, 0.5f);
+                case Anchor.RightButtom: return new Vector4(1, 0, 1, 0);
+            }
+            return new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+        }
+
+        public static Vector4 GetAnchorWithGroupName(string name)
+        {
+            Anchor anchor = Anchor.CenterMiddle;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_LEFTTOP))
+                anchor = Anchor.LeftTop;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_LEFTMIDDLE))
+                anchor = Anchor.LeftMiddle;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_LEFTBUTTOM))
+                anchor = Anchor.LeftButtom;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_CENTERTOP))
+                anchor = Anchor.CenterTop;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_CENTERMIDDLE))
+                anchor = Anchor.CenterMiddle;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_CENTERBUTTOM))
+                anchor = Anchor.CenterButtom;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_RIGHTTOP))
+                anchor = Anchor.RightTop;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_RIGHTMIDDLE))
+                anchor = Anchor.RightMiddle;
+            if (name.ContainsIgnoreCase(PsdControl.ANCHOR_RIGHTBUTTOM))
+                anchor = Anchor.RightButtom;
+
+
+            return GetAnchor(anchor);
+        }
+
         public static string TrimSliceReg(string layerName)
         {
             if(layerName.Contains("@"))
