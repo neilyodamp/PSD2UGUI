@@ -467,8 +467,8 @@ namespace PsdLayoutTool
                 writePath = writePath.Substring(0, length);
                 writePath += PUBLIC_IMG_PATH;
             }
-
-            layerName = PsdUtils.TrimSliceHead(layerName);
+            //Debug.Log("");
+            layerName = PsdUtils.TrimSliceReg(layerName);
             file = Path.Combine(writePath, layerName + ".png");
             return file;
         }
@@ -480,6 +480,7 @@ namespace PsdLayoutTool
 
         public static Sprite CreateSprite(Layer layer, string packingTag)
         {
+            //Debug.Log("");
             Sprite sprite = null;
 
             if (layer.Children.Count == 0 && layer.Rect.width > 0)
@@ -511,17 +512,18 @@ namespace PsdLayoutTool
                 texture = DoCreateTexture(layer, out file);
                 File.WriteAllBytes(file, texture.EncodeToPNG());
                 string relativePathToSprite = GetRelativePath(file);
+
                 AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
                 TextureImporter textureImporter = AssetImporter.GetAtPath(relativePathToSprite) as TextureImporter;
                 if(textureImporter != null)
                 {
                     textureImporter.textureType = TextureImporterType.GUI;
-                    
                     textureImporter.mipmapEnabled = false;
                     //textureImporter.spriteImportMode = SpriteImportMode.Single;
                     textureImporter.maxTextureSize = 2048;
                 }
                 AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
+
                 texture = (Texture2D)AssetDatabase.LoadAssetAtPath(relativePathToSprite, typeof(Texture2D));
             }
             
@@ -534,7 +536,7 @@ namespace PsdLayoutTool
             AssetDatabase.ImportAsset(relativePathToSprite, ImportAssetOptions.ForceUpdate);
 
             TextureImporter textureImporter = AssetImporter.GetAtPath(relativePathToSprite) as TextureImporter;
-            if (textureImporter != null)
+            if(textureImporter != null)
             {
                 textureImporter.textureType = TextureImporterType.Sprite;
                 textureImporter.mipmapEnabled = false;

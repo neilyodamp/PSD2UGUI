@@ -336,7 +336,7 @@ namespace PsdLayoutTool
 
             if (imgLayer.Name.StartsWith("button"))
             {
-                Debug.Log("");
+               //Debug.Log("");
             }
             
             if(imgLayer.Is9Slice)

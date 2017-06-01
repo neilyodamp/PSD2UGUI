@@ -128,7 +128,7 @@ namespace PsdLayoutTool
             return new Vector3(x, y, 0);
         }
 
-        public static string TrimSliceHead(string layerName)
+        public static string TrimSliceReg(string layerName)
         {
             if(layerName.Contains("@"))
             {
