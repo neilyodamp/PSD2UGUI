@@ -465,12 +465,29 @@ namespace PsdLayoutTool
             return file;
         }
 
-        public static Sprite CreateSprite(Layer layer)
+        public static void CreateSprite(Layer layer, Image img)
         {
-            return CreateSprite(layer, _psdName);
+
+            if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
+            {
+                img.sprite = PsdImporter.CreateSpriteInternal(layer);
+            }
+            else
+            {
+                layer.Name = layer.Name.Replace(PsdImporter.IMG_REF, string.Empty);
+                string writePath;
+                string path = PsdImporter.GetFilePath(layer, out writePath);
+                PsdImporter.AddScaleImg(path, img);
+            }
+
         }
 
-        public static Sprite CreateSprite(Layer layer, string packingTag)
+        private static Sprite CreateSpriteInternal(Layer layer)
+        {
+            return CreateSpriteInternal(layer, _psdName);
+        }
+
+        private static Sprite CreateSpriteInternal(Layer layer, string packingTag)
         {
             //Debug.Log("");
             Sprite sprite = null;

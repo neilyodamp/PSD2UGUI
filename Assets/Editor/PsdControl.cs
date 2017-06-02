@@ -267,7 +267,7 @@ namespace PsdLayoutTool
             RectTransform fgRectTransform = fgGo.AddComponent<RectTransform>();
             Image fgImage = fgGo.AddComponent<Image>();
             fgRectTransform.sizeDelta = new Vector2(width, height);
-            fgImage.sprite = PsdImporter.CreateSprite(fgLayer);
+            PsdImporter.CreateSprite(fgLayer, fgImage);
 
             GameObject maskGo = new GameObject("Mask");
             RectTransform maskRectTransform = maskGo.AddComponent<RectTransform>();
@@ -288,7 +288,7 @@ namespace PsdLayoutTool
                 bgRectTransform = bgGo.AddComponent<RectTransform>();
                 Image bgImage = bgGo.AddComponent<Image>();
                 bgRectTransform.sizeDelta = new Vector2(bgWidth, bgHeight);
-                bgImage.sprite = PsdImporter.CreateSprite(bgLayer);
+                PsdImporter.CreateSprite(bgLayer, bgImage);
                 bgRectTransform.SetParent(rectTransform);
                 bgRectTransform.localPosition = Vector3.zero;
                 layer.Children.Remove(bgLayer);
@@ -348,18 +348,19 @@ namespace PsdLayoutTool
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
             Image img = go.AddComponent<Image>();
             goRectTransform.sizeDelta = new Vector2(width,height);
+            PsdImporter.CreateSprite(imgLayer, img);
 
-            if(!imgLayer.Name.StartsWith(PsdImporter.IMG_REF))
-            {
-                img.sprite = PsdImporter.CreateSprite(imgLayer);
-            }
-            else
-            {
-                imgLayer.Name = imgLayer.Name.Replace(PsdImporter.IMG_REF, string.Empty);
-                string writePath;
-                string path = PsdImporter.GetFilePath(imgLayer, out writePath);
-                PsdImporter.AddScaleImg(path, img);
-            }
+            //if(!imgLayer.Name.StartsWith(PsdImporter.IMG_REF))
+            //{
+            //    img.sprite = PsdImporter.CreateSprite(imgLayer);
+            //}
+            //else
+            //{
+            //    imgLayer.Name = imgLayer.Name.Replace(PsdImporter.IMG_REF, string.Empty);
+            //    string writePath;
+            //    string path = PsdImporter.GetFilePath(imgLayer, out writePath);
+            //    PsdImporter.AddScaleImg(path, img);
+            //}
 
             if (imgLayer.Name.StartsWith("button"))
             {
@@ -398,8 +399,8 @@ namespace PsdLayoutTool
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
             Image img = go.AddComponent<Image>();
             goRectTransform.sizeDelta = new Vector2(width, height);
+            PsdImporter.CreateSprite(imgLayer, img);
 
-            img.sprite = PsdImporter.CreateSprite(imgLayer);
             if(imgLayer.Is9Slice)
             {
                 img.type = Image.Type.Sliced;
