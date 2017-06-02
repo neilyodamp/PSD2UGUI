@@ -440,7 +440,8 @@ namespace PsdLayoutTool
         {
             string file = string.Empty;
             writePath = _texturePath;
-            file = Path.Combine(writePath, layer.Name + ".png");
+            string layerName = PsdUtils.ClearNameTail(layer.Name);
+            file = Path.Combine(writePath, layerName + ".png");
             return file;
         }
 
@@ -459,16 +460,22 @@ namespace PsdLayoutTool
                 writePath = writePath.Substring(0, length);
                 writePath += PUBLIC_IMG_PATH;
             }
-            //Debug.Log("");
-            layerName = PsdUtils.TrimSliceReg(layerName);
+            //layerName = PsdUtils.TrimSliceReg(layerName);
+            layerName = PsdUtils.ClearNameTail(layerName);
             file = Path.Combine(writePath, layerName + ".png");
             return file;
         }
 
         public static void CreateSprite(Layer layer, Image img)
         {
-
-            if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
+            Match match = PsdControl.colorImgRegex.Match(layer.Name);
+            if(match.Success)
+            {
+                string numStr = match.Groups[1].Value;
+                float alpha = float.Parse(numStr) / 100.0f;
+                img.color = new Color(0, 0, 0, alpha);
+            }
+            else if(!layer.Name.StartsWith(PsdImporter.IMG_REF))
             {
                 img.sprite = PsdImporter.CreateSpriteInternal(layer);
             }
@@ -479,7 +486,6 @@ namespace PsdLayoutTool
                 string path = PsdImporter.GetFilePath(layer, out writePath);
                 PsdImporter.AddScaleImg(path, img);
             }
-
         }
 
         private static Sprite CreateSpriteInternal(Layer layer)

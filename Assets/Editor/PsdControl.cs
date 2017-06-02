@@ -5,6 +5,7 @@ using System.Text;
 using UnityEngine.UI;
 using UnityEngine;
 using PhotoshopFile;
+using System.Text.RegularExpressions;
 
 namespace PsdLayoutTool
 {
@@ -68,6 +69,10 @@ namespace PsdLayoutTool
         public const string ANCHOR_RIGHTTOP = "@rt";
         public const string ANCHOR_RIGHTMIDDLE = "@rm";
         public const string ANCHOR_RIGHTBUTTOM = "@rb";
+
+        public static Regex colorImgRegex = new Regex(@"%(\d+)");
+        public static Regex headRegex = new Regex(@"[A-Za-z0-9]+_");
+        public static Regex tailRegex = new Regex(@"@\w+");
 
         public static GroupClass CheckGroupClass(Layer layer)
         {
@@ -189,6 +194,7 @@ namespace PsdLayoutTool
             UINode scrollNode = new UINode();
             scrollNode.rect = sizeLayer.Rect;
             scrollNode.Go = scrollRectGo;
+            PsdUtils.SetNodeName(scrollNode, scrollRectGo.name);
 
             UINode viewportNode = new UINode();
             viewportNode.rect = sizeLayer.Rect;
@@ -325,6 +331,7 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = fgLayer.Rect;
             node.Go = progressGo;
+            PsdUtils.SetNodeName(node, progressGo.name);
             return node;
 
         }
@@ -376,7 +383,7 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
-
+            PsdUtils.SetNodeName(node, go.name);
             return node;
         }
 
@@ -412,7 +419,7 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
-
+            PsdUtils.SetNodeName(node, go.name);
             return node;
         }
 
@@ -426,7 +433,7 @@ namespace PsdLayoutTool
             node.Go = go;
 
             SetAnchor(goRectTransform, layer.Name);
-
+            PsdUtils.SetNodeName(node, go.name);
             return node;
         }
 
@@ -491,6 +498,7 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = layer.Rect;
             node.Go = gameObject;
+            PsdUtils.SetNodeName(node, gameObject.name);
             return node;
         }
 
@@ -521,7 +529,7 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
             node.Go = go;
-
+            PsdUtils.SetNodeName(node, go.name);
             return node;
         }
 
@@ -536,6 +544,8 @@ namespace PsdLayoutTool
             rectTransform.anchorMin = new Vector2(anchor.x, anchor.y);
             rectTransform.anchorMax = new Vector2(anchor.z, anchor.w);
         }
+
+
 
     }
 }

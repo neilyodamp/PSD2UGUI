@@ -184,5 +184,24 @@ namespace PsdLayoutTool
             return layerName;
         }
 
+        public static string ClearName(string name)
+        {
+            return ClearNameTail(ClearNameHead(name));
+        }
+        public static string ClearNameHead(string name)
+        {
+            string val = PsdControl.headRegex.Replace(name, "");
+            return val;
+        }
+        public static string ClearNameTail(string name)
+        {
+            string val = PsdControl.tailRegex.Replace(name, "");
+            return val;
+        }
+
+        public static void SetNodeName(UINode node,string name)
+        {
+            node.Go.name = ClearNameTail(name);
+        }
     }
 }
