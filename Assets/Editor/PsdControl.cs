@@ -328,7 +328,7 @@ namespace PsdLayoutTool
             return node;
 
         }
-        public static UINode CreateImage(Layer layer)
+        public static UINode CreateImage(Layer layer, bool isTexture = false)
         {
             Layer imgLayer = layer;
             foreach (var child in layer.Children)
@@ -346,32 +346,23 @@ namespace PsdLayoutTool
 
             GameObject go = new GameObject(layer.Name);
             RectTransform goRectTransform = go.AddComponent<RectTransform>();
-            Image img = go.AddComponent<Image>();
-            goRectTransform.sizeDelta = new Vector2(width,height);
-            PsdImporter.CreateSprite(imgLayer, img);
-
-            //if(!imgLayer.Name.StartsWith(PsdImporter.IMG_REF))
-            //{
-            //    img.sprite = PsdImporter.CreateSprite(imgLayer);
-            //}
-            //else
-            //{
-            //    imgLayer.Name = imgLayer.Name.Replace(PsdImporter.IMG_REF, string.Empty);
-            //    string writePath;
-            //    string path = PsdImporter.GetFilePath(imgLayer, out writePath);
-            //    PsdImporter.AddScaleImg(path, img);
-            //}
-
-            if (imgLayer.Name.StartsWith("button"))
-            {
-               //Debug.Log("");
-            }
             
-            if(imgLayer.Is9Slice)
+            goRectTransform.sizeDelta = new Vector2(width,height);
+            if (!isTexture)
             {
-                //Debug.Log(imgLayer.Name);
-                img.type = Image.Type.Sliced;
+                Image img = go.AddComponent<Image>();
+                PsdImporter.CreateSprite(imgLayer, img);
+                if(imgLayer.Is9Slice)
+                {
+                    img.type = Image.Type.Sliced;
+                }
             }
+            else
+            {
+                RawImage img = go.AddComponent<RawImage>();
+                img.texture = PsdImporter.CreateTexture2D(imgLayer);
+            }
+
             SetAnchor(goRectTransform, layer.Name);
             UINode node = new UINode();
             node.rect = imgLayer.Rect;
@@ -491,37 +482,6 @@ namespace PsdLayoutTool
             UINode node = new UINode();
             node.rect = layer.Rect;
             node.Go = gameObject;
-            return node;
-        }
-
-        public static UINode CreateTexture(Layer layer)
-        {
-
-            Layer imgLayer = layer;
-            foreach(var child in layer.Children)
-            {
-                if(!child.IsTextLayer && !PsdUtils.IsGroupLayer(child))
-                {
-                    imgLayer = child;
-                    break;
-                }
-            }
-            layer.Children.Remove(imgLayer);
-            float width = imgLayer.Rect.width;
-            float height = imgLayer.Rect.height;
-
-            GameObject go = new GameObject(layer.Name);
-            RectTransform goRectTransform = go.AddComponent<RectTransform>();
-            RawImage img = go.AddComponent<RawImage>();
-            goRectTransform.sizeDelta = new Vector2(width, height);
-            img.texture = PsdImporter.CreateTexture2D(imgLayer);
-
-            SetAnchor(goRectTransform, layer.Name);
-
-            UINode node = new UINode();
-            node.rect = imgLayer.Rect;
-            node.Go = go;
-
             return node;
         }
 
