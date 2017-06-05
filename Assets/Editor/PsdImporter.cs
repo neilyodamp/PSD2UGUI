@@ -354,7 +354,7 @@ namespace PsdLayoutTool
             }
             else if(groupClass == GroupClass.Texture)
             {
-                node = PsdControl.CreateTexture(layer);
+                node = PsdControl.CreateImage(layer, true);
             }
             else if(groupClass == GroupClass.Button)
             {
@@ -413,23 +413,11 @@ namespace PsdLayoutTool
             return file;
         }
 
-        private static Texture2D DoCreatePNG(Layer layer, out string file)
+        private static Texture2D DoCreatePNG(Layer layer, out string file, bool isTexture = false)
         {
             Texture2D texture = ImageDecoder.DecodeImage(layer);
             string writePath;
-            file = GetFilePath(layer, out writePath);
-            if(!Directory.Exists(writePath))
-            {
-                Directory.CreateDirectory(writePath);
-            }
-            return texture;
-        }
-
-        private static Texture2D DoCreateTexture(Layer layer, out string file)
-        {
-            Texture2D texture = ImageDecoder.DecodeImage(layer);
-            string writePath;
-            file = GetTextureFilePath(layer, out writePath);
+            file = isTexture ? GetTextureFilePath(layer, out writePath) : GetFilePath(layer, out writePath);
             if(!Directory.Exists(writePath))
             {
                 Directory.CreateDirectory(writePath);
@@ -503,6 +491,7 @@ namespace PsdLayoutTool
             {
                 string writePath;
                 string file = GetFilePath(layer, out writePath);
+
                 if (!_imageDic.ContainsKey(file))
                 {
                     CreatePNG(layer);
@@ -525,7 +514,7 @@ namespace PsdLayoutTool
             Texture2D texture = null;
             if(layer.Children.Count == 0 && layer.Rect.width > 0)
             {
-                texture = DoCreateTexture(layer, out file);
+                texture = DoCreatePNG(layer, out file, true);
                 File.WriteAllBytes(file, texture.EncodeToPNG());
                 string relativePathToSprite = GetRelativePath(file);
 
