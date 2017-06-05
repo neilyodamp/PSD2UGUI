@@ -49,7 +49,7 @@ namespace PsdLayoutTool
         public const string BTN = "btn_";
         public const string IMAGE = "img_";
         public const string TEXTURE = "tex_";
-        public const string SCROLL = "src_";
+        public const string SCROLL = "scr_";
         public const string PROGRESS = "pgr_";
         public const string SLIDER = "sld_";
 
@@ -535,17 +535,10 @@ namespace PsdLayoutTool
 
         public static void SetAnchor(RectTransform rectTransform,string name)
         {
-            Debug.Log(name);
-            Debug.Log(rectTransform.name);
             Vector4 anchor = PsdUtils.GetAnchorWithGroupName(name);
-            Debug.Log(anchor);
-
 
             rectTransform.anchorMin = new Vector2(anchor.x, anchor.y);
             rectTransform.anchorMax = new Vector2(anchor.z, anchor.w);
         }
-
-
-
     }
 }

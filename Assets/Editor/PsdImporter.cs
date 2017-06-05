@@ -168,7 +168,8 @@ namespace PsdLayoutTool
                 _rootPsdGameObject.transform.SetParent(_canvasObj.transform, false);
                 _rootNode = new UINode();
                 _rootNode.Go = _rootPsdGameObject;
-                
+                Debug.Log("Name:"+_rootPsdGameObject.name);
+
                 RectTransform rectRoot = _rootPsdGameObject.GetComponent<RectTransform>();
                 
                 rectRoot.anchorMin = new Vector2(0, 0);
