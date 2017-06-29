@@ -17,6 +17,7 @@ namespace PhotoshopFile
         private static readonly int Version5OrLaterBit = BitVector32.CreateMask(ObsoleteBit);
         private static readonly int PixelDataIrrelevantBit = BitVector32.CreateMask(Version5OrLaterBit);
 
+        public static string SLICE_HEAD = "@slice";
         public static Regex SLICE_REG = new Regex(@"\d+[x]\d+$");
         public static char SLICE_SEPECTOR = 'x';
         public static Regex ZH_REG = new Regex(@"[\u4E00-\u9FBF]");
@@ -236,7 +237,8 @@ namespace PhotoshopFile
             int b = deltaB > 0 ? deltaB : 0;
             //Unity Document TextureImporter.spriteBorder  X=left, Y=bottom, Z=right, W=top.
             _border = new Vector4(l, b, r, t);
-            _is9Slice = SLICE_REG.Match(_name).Success;
+            //_is9Slice = SLICE_REG.Match(_name).Success;
+            _is9Slice = _name.Contains(SLICE_HEAD);
 
         }
 

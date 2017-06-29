@@ -53,7 +53,9 @@ namespace PhotoshopFile
             {
 
                 Regex reg = Layer.SLICE_REG;
-                string[] size = reg.Match(layer.Name).ToString().Split(Layer.SLICE_SEPECTOR);
+                Match match = reg.Match(layer.Name);
+                string[] size = match.Success ? match.ToString().Split(Layer.SLICE_SEPECTOR) : new string[]{ "5", "5"};
+
                 int width = 0;
                 int height = 0;
                 //l t r b     Border l b r t
